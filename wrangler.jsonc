@@ -1,59 +1,70 @@
-/**
- * For more details on how to configure Wrangler, refer to:
- * https://developers.cloudflare.com/workers/wrangler/configuration/
- */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "email-validation",
+	"name": "vouch",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-10-11",
-	"migrations": [
-		{
-			"new_sqlite_classes": [
-				"MyDurableObject"
-			],
-			"tag": "v1"
-		}
-	],
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "MyDurableObject",
-				"name": "MY_DURABLE_OBJECT"
+				"name": "FINGERPRINTS",
+				"class_name": "FingerprintStore"
+			},
+			{
+				"name": "LOG_QUEUE",
+				"class_name": "LogQueue"
+			},
+			{
+				"name": "USAGE_COUNTER",
+				"class_name": "UsageCounter"
 			}
 		]
 	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": ["FingerprintStore", "LogQueue", "UsageCounter"]
+		}
+	],
 	"observability": {
 		"enabled": true
+	},
+	"kv_namespaces": [
+		{
+			"binding": "DISPOSABLE_DOMAINS",
+			"id": "e13cccb2da3b4b6b9afdfb570f1ee2c8"
+		},
+		{
+			"binding": "MX_CACHE",
+			"id": "6fb8b69a712348f68c5b6cae367c27be"
+		},
+		{
+			"binding": "PROJECT_SETTINGS",
+			"id": "ad30cb8138754f16990d8965d7f163dd"
+		},
+		{
+			"binding": "RATE_LIMITS",
+			"id": "eb897f2c9dcc403cb20580e399393fcc"
+		}
+	],
+	"env": {
+		"production": {
+			"workers_dev": false,
+			"routes": [
+				{
+					"pattern": "api.vouch.expert/*",
+					"zone_name": "vouch.expert"
+				}
+			]
+		}
+	},
+	"vars": {
+		"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
+		"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert"
+	},
+	"triggers": {
+		"crons": ["0 */6 * * *"]
+	},
+	"placement": {
+		"mode": "smart"
 	}
-	/**
-	 * Smart Placement
-	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
-	 */
-	// "placement": { "mode": "smart" }
-	/**
-	 * Bindings
-	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-	 * databases, object storage, AI inference, real-time communication and more.
-	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
-	 */
-	/**
-	 * Environment Variables
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-	 */
-	// "vars": { "MY_VARIABLE": "production_value" }
-	/**
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
-	 */
-	/**
-	 * Static Assets
-	 * https://developers.cloudflare.com/workers/static-assets/binding/
-	 */
-	// "assets": { "directory": "./public/", "binding": "ASSETS" }
-	/**
-	 * Service Bindings (communicate between multiple Workers)
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
-	 */
-	// "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
 }

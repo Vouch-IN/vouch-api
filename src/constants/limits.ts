@@ -1,0 +1,7 @@
+export const CLIENT_RATE_LIMIT = 1000
+export const SERVER_RATE_LIMIT = 5000
+export const LOG_QUEUE_BATCH_SIZE = 100
+export const MAX_LOG_QUEUE_SIZE = 10000
+export const WINDOW_MS = 3600000
+
+export const FREE_VALIDATIONS_LIMIT = 1000
