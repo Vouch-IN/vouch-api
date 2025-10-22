@@ -9,8 +9,10 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 
 	const sources = [
 		'https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/master/disposable_email_blocklist.conf',
+		'https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt',
 		'https://raw.githubusercontent.com/ivolo/disposable-email-domains/master/index.json',
-		'https://raw.githubusercontent.com/FGRibreau/mailchecker/refs/heads/master/list.txt'
+		'https://raw.githubusercontent.com/FGRibreau/mailchecker/refs/heads/master/list.txt',
+		'https://gist.githubusercontent.com/adamloving/4401361/raw/e81212c3caecb54b87ced6392e0a0de2b6466287/temporary-email-address-domains'
 	]
 
 	try {
