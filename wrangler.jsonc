@@ -59,8 +59,7 @@
 	},
 	"vars": {
 		"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
-		"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert",
-		"UPSTASH_REDIS_REST_URL": "https://maximum-mallard-19509.upstash.io"
+		"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert"
 	},
 	"triggers": {
 		"crons": ["0 * * * *", "0 2 * * *"]
