@@ -12,7 +12,7 @@ type FingerprintData = {
 	signupCount: number
 }
 
-type RequestInput = {
+type FingerprintRequestInput = {
 	email: string
 	fingerprintHash: string
 	ip: null | string
@@ -20,68 +20,58 @@ type RequestInput = {
 }
 
 export class FingerprintStore extends DurableObject<Env> {
-	async check({ email, fingerprintHash }: RequestInput): Promise<DeviceData> {
+	async checkAndRecord({ email, fingerprintHash, ip, projectId }: FingerprintRequestInput) {
 		const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
 
+		const now = Date.now()
+
 		if (!data) {
-			return {
+			const deviceData: DeviceData = {
 				emailsUsed: 0,
-				firstSeen: Date.now(),
+				firstSeen: now,
 				isKnownDevice: false,
-				isNewEmail: false,
+				isNewEmail: true,
 				previousSignups: 0
-			} satisfies DeviceData
-		}
+			}
 
-		const isNewEmail = !data.emailsUsed.includes(email)
-
-		return {
-			emailsUsed: data.emailsUsed.length,
-			firstSeen: data.firstSeen,
-			isKnownDevice: true,
-			isNewEmail,
-			lastSeen: data.lastSeen,
-			previousSignups: data.signupCount
-		} satisfies DeviceData
-	}
-
-	async checkAndRecord(request: RequestInput) {
-		const deviceData = await this.check(request)
-
-		this.record(request).catch((error: unknown) => {
-			console.error('Failed to record signup:', error)
-		})
-
-		return deviceData
-	}
-
-	async record({ email, fingerprintHash, ip, projectId }: RequestInput): Promise<FingerprintData> {
-		let data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
-
-		if (!data) {
-			data = {
+			const fingerprintData: FingerprintData = {
 				emailsUsed: [email],
 				fingerprintHash,
-				firstSeen: Date.now(),
+				firstSeen: now,
 				lastIP: ip,
-				lastSeen: Date.now(),
+				lastSeen: now,
 				projectsSeen: [projectId],
 				signupCount: 1
 			}
+
+			this.ctx.storage.put(fingerprintHash, fingerprintData).catch((error: unknown) => {
+				console.log('Error while updating fingerprint', error)
+			})
+
+			return deviceData
 		} else {
+			const deviceData: DeviceData = {
+				emailsUsed: data.emailsUsed.length,
+				firstSeen: data.firstSeen,
+				isKnownDevice: true,
+				isNewEmail: data.emailsUsed.includes(email),
+				previousSignups: data.signupCount
+			}
 			if (!data.emailsUsed.includes(email)) {
 				data.emailsUsed.push(email)
 			}
 			if (!data.projectsSeen.includes(projectId)) {
 				data.projectsSeen.push(projectId)
 			}
+			if (ip) {
+				data.lastIP = ip
+			}
 			data.signupCount++
-			data.lastSeen = Date.now()
-			data.lastIP = ip
+			data.lastSeen = now
+
+			await this.ctx.storage.put(fingerprintHash, data)
+
+			return deviceData
 		}
-
-		await this.ctx.storage.put(fingerprintHash, data)
-
-		return data
 	}
 }
