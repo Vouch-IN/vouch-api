@@ -1,4 +1,4 @@
-import { checkFingerprintAndRecordSignup } from '../redis/fingerprint-store'
+import { checkFingerprintAndRecordSignup } from '../kv/fingerprint-store'
 import { type MXResponse } from '../types'
 import { jsonResponse } from '../utils'
 
@@ -49,15 +49,25 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			degradedAt: 150,
 			fn: async () => {
 				try {
-					const id = env.FINGERPRINTS.idFromName('health-check')
-					const stub = env.FINGERPRINTS.get(id)
+					// const id = env.FINGERPRINTS.idFromName('health-check')
+					// const stub = env.FINGERPRINTS.get(id)
+					//
+					// await stub.checkAndRecord({
+					// 	email: 'health@example.com',
+					// 	fingerprintHash: 'health-check',
+					// 	ip: null,
+					// 	projectId: 'health'
+					// })
 
-					await stub.checkAndRecord({
-						email: 'health@example.com',
-						fingerprintHash: 'health-check',
-						ip: null,
-						projectId: 'health'
-					})
+					await checkFingerprintAndRecordSignup(
+						{
+							email: 'health@example.com',
+							fingerprintHash: 'health-check',
+							ip: null,
+							projectId: 'health'
+						},
+						env
+					)
 
 					return true
 				} catch {
@@ -92,27 +102,6 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			},
 			timeout: 1000
 		},
-		upstash: {
-			degradedAt: 150,
-			fn: async () => {
-				try {
-					await checkFingerprintAndRecordSignup(
-						{
-							email: 'health@example.com',
-							fingerprintHash: 'health-check',
-							ip: null,
-							projectId: 'health'
-						},
-						env
-					)
-
-					return true
-				} catch {
-					return false
-				}
-			},
-			timeout: 300
-		},
 		workers: {
 			degradedAt: 100,
 			// If we reached here, Workers can execute. Evaluate performance against threshold.
@@ -131,7 +120,7 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 	>
 
 	// Compute overall status per rules
-	const coreNames = new Set(['durableObjects', 'kv', 'upstash', 'workers'])
+	const coreNames = new Set(['durableObjects', 'kv', 'workers'])
 	let overall: 'degraded' | 'down' | 'operational' = 'operational'
 	const anyDown = Object.values(components).some((c) => c.status === 'down')
 	const anyCoreDown = Object.entries(components).some(([name, c]) => coreNames.has(name) && c.status === 'down')

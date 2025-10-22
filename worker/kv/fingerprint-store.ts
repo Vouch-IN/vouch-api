@@ -1,5 +1,3 @@
-import { Redis } from '@upstash/redis/cloudflare'
-
 import type { DeviceData } from '../types'
 
 type FingerprintData = {
@@ -20,13 +18,12 @@ type FingerprintRequestInput = {
 }
 
 export async function checkFingerprintAndRecordSignup({ email, fingerprintHash, ip, projectId }: FingerprintRequestInput, env: Env) {
-	const redis = Redis.fromEnv(env)
 	const key = `fp:${fingerprintHash}`
-	const data = await redis.hgetall<FingerprintData>(key)
+	const existing = await env.FINGERPRINTS.get<FingerprintData>(key, { type: 'json' })
 
 	const now = Date.now()
 
-	if (!data || Object.keys(data).length === 0) {
+	if (!existing) {
 		const deviceData: DeviceData = {
 			emailsUsed: 0,
 			firstSeen: now,
@@ -45,32 +42,37 @@ export async function checkFingerprintAndRecordSignup({ email, fingerprintHash, 
 			signupCount: 1
 		}
 
-		redis.hset(key, fingerprintData).catch((error: unknown) => {
+		env.FINGERPRINTS.put(key, JSON.stringify(fingerprintData)).catch((error: unknown) => {
 			console.log('Error while updating fingerprint', error)
 		})
 
 		return deviceData
 	} else {
 		const deviceData: DeviceData = {
-			emailsUsed: data.emailsUsed.length,
-			firstSeen: data.firstSeen,
+			emailsUsed: existing.emailsUsed.length,
+			firstSeen: existing.firstSeen,
 			isKnownDevice: true,
-			isNewEmail: data.emailsUsed.includes(email),
-			previousSignups: data.signupCount
+			isNewEmail: existing.emailsUsed.includes(email),
+			previousSignups: existing.signupCount
 		}
-		if (!data.emailsUsed.includes(email)) {
-			data.emailsUsed.push(email)
+
+		const fingerprintData: FingerprintData = {
+			...existing
 		}
-		if (!data.projectsSeen.includes(projectId)) {
-			data.projectsSeen.push(projectId)
+
+		if (!fingerprintData.emailsUsed.includes(email)) {
+			fingerprintData.emailsUsed.push(email)
+		}
+		if (!fingerprintData.projectsSeen.includes(projectId)) {
+			fingerprintData.projectsSeen.push(projectId)
 		}
 		if (ip) {
-			data.lastIP = ip
+			fingerprintData.lastIP = ip
 		}
-		data.signupCount++
-		data.lastSeen = now
+		fingerprintData.signupCount++
+		fingerprintData.lastSeen = now
 
-		redis.hset(key, data).catch((error: unknown) => {
+		env.FINGERPRINTS.put(key, JSON.stringify(fingerprintData)).catch((error: unknown) => {
 			console.log('Error while updating fingerprint', error)
 		})
 

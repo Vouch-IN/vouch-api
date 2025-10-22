@@ -6,10 +6,6 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"name": "FINGERPRINTS",
-				"class_name": "FingerprintStore"
-			},
-			{
 				"name": "LOG_QUEUE",
 				"class_name": "LogQueue"
 			},
@@ -44,6 +40,10 @@
 		{
 			"binding": "RATE_LIMITS",
 			"id": "eb897f2c9dcc403cb20580e399393fcc"
+		},
+		{
+			"binding": "FINGERPRINTS",
+			"id": "34d4c1623171400aa992189f165ffff5"
 		}
 	],
 	"env": {

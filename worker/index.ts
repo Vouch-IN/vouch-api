@@ -1,9 +1,9 @@
 import { flushAllLogQueues, syncDisposableDomains } from './crons'
-import { FingerprintStore, LogQueue, UsageCounter } from './durable-objects'
+import { LogQueue, UsageCounter } from './durable-objects'
 import { handleHealth, handleValidation, handleWebhook } from './handlers'
 import { handleError } from './middleware'
 
-export { FingerprintStore, LogQueue, UsageCounter }
+export { LogQueue, UsageCounter }
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
