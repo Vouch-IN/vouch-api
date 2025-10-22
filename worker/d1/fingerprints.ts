@@ -1,16 +1,6 @@
 import { type DeviceData } from '../types'
 import { safeParse, safeStringify } from '../utils'
 
-type FingerprintData = {
-	emailsUsed: string[]
-	fingerprintHash: string
-	firstSeen: number
-	lastIP: null | string
-	lastSeen: number
-	projectsSeen: string[]
-	signupCount: number
-}
-
 type FingerprintDbRow = {
 	emails_used: string
 	first_seen: number
@@ -21,53 +11,17 @@ type FingerprintDbRow = {
 	signup_count: number
 }
 
-type RequestInput = {
+type FingerprintRequestInput = {
 	email: string
 	fingerprintHash: string
 	ip: null | string
 	projectId: string
 }
 
-export async function checkFingerprint({ email, fingerprintHash }: RequestInput, env: Env): Promise<DeviceData> {
-	const data = await env.vouch_db.prepare('SELECT * FROM fingerprints WHERE hash = ?').bind(fingerprintHash).first<FingerprintDbRow>()
-
-	if (!data) {
-		return {
-			emailsUsed: 0,
-			firstSeen: Date.now(),
-			isKnownDevice: false,
-			isNewEmail: false,
-			previousSignups: 0
-		} satisfies DeviceData
-	}
-
-	const emailsUsedArray = safeParse<string[]>(data.emails_used, [])
-
-	const isNewEmail = !emailsUsedArray.includes(email)
-
-	return {
-		emailsUsed: emailsUsedArray.length,
-		firstSeen: data.first_seen,
-		isKnownDevice: true,
-		isNewEmail,
-		lastSeen: data.last_seen,
-		previousSignups: data.signup_count
-	} satisfies DeviceData
-}
-
-export async function checkFingerprintAndRecordSignup(request: RequestInput, env: Env) {
-	const deviceData = await checkFingerprint(request, env)
-
-	recordSignup(request, env).catch((error: unknown) => {
-		console.error('Failed to record signup:', error)
-	})
-
-	return deviceData
-}
-
-export async function recordSignup({ email, fingerprintHash, ip, projectId }: RequestInput, env: Env): Promise<FingerprintData> {
+export async function checkFingerprintAndRecordSignup({ email, fingerprintHash, ip, projectId }: FingerprintRequestInput, env: Env) {
+	const session = env.vouch_db.withSession()
 	// Check if fingerprint exists
-	const existing = await env.vouch_db
+	const existing = await session
 		.prepare('SELECT emails_used, projects_seen FROM fingerprints WHERE hash = ?')
 		.bind(fingerprintHash)
 		.first<FingerprintDbRow>()
@@ -75,53 +29,40 @@ export async function recordSignup({ email, fingerprintHash, ip, projectId }: Re
 	const now = Date.now()
 
 	if (!existing) {
-		const data: FingerprintData = {
-			emailsUsed: [email],
-			fingerprintHash,
+		const deviceData: DeviceData = {
+			emailsUsed: 0,
 			firstSeen: now,
-			lastIP: ip,
-			lastSeen: now,
-			projectsSeen: [projectId],
-			signupCount: 1
+			isKnownDevice: false,
+			isNewEmail: true,
+			previousSignups: 0
 		}
-
 		// Insert new fingerprint
-		await env.vouch_db
+		await session
 			.prepare(
 				`INSERT INTO fingerprints
         (hash, emails_used, projects_seen, signup_count, first_seen, last_seen, last_ip)
         VALUES (?, ?, ?, ?, ?, ?, ?)`
 			)
-			.bind(
-				data.fingerprintHash,
-				safeStringify(data.emailsUsed),
-				safeStringify(data.projectsSeen),
-				data.signupCount,
-				data.firstSeen,
-				data.lastSeen,
-				data.lastIP
-			)
+			.bind(fingerprintHash, safeStringify([email]), safeStringify([projectId]), 1, now, now, ip)
 			.run()
 
-		return data
+		return deviceData
 	} else {
-		const data: FingerprintData = {
-			emailsUsed: safeParse(existing.emails_used, []),
-			fingerprintHash: existing.hash,
+		const emailsUsed = safeParse<string[]>(existing.emails_used, [])
+		const projectsSeen = safeParse<string[]>(existing.projects_seen, [])
+
+		const deviceData: DeviceData = {
+			emailsUsed: emailsUsed.length,
 			firstSeen: existing.first_seen,
-			lastIP: existing.last_ip,
-			lastSeen: existing.last_seen,
-			projectsSeen: safeParse(existing.projects_seen, []),
-			signupCount: existing.signup_count
+			isKnownDevice: true,
+			isNewEmail: false,
+			previousSignups: existing.signup_count
 		}
 
-		if (!data.emailsUsed.includes(email)) data.emailsUsed.push(email)
-		if (!data.projectsSeen.includes(projectId)) data.projectsSeen.push(projectId)
-		if (ip) data.lastIP = ip
-		data.lastSeen = now
-		data.signupCount++
+		if (!emailsUsed.includes(email)) emailsUsed.push(email)
+		if (!projectsSeen.includes(projectId)) projectsSeen.push(projectId)
 
-		await env.vouch_db
+		await session
 			.prepare(
 				`UPDATE fingerprints
         SET emails_used = ?,
@@ -131,16 +72,9 @@ export async function recordSignup({ email, fingerprintHash, ip, projectId }: Re
             last_ip = ?
         WHERE hash = ?`
 			)
-			.bind(
-				safeStringify(data.emailsUsed),
-				safeStringify(data.projectsSeen),
-				data.signupCount,
-				data.lastSeen,
-				data.lastIP,
-				data.fingerprintHash
-			)
+			.bind(safeStringify(emailsUsed), safeStringify(projectsSeen), existing.signup_count + 1, now, existing.last_ip || ip, fingerprintHash)
 			.run()
 
-		return data
+		return deviceData
 	}
 }
