@@ -19,7 +19,7 @@ type FingerprintRequestInput = {
 }
 
 export async function checkFingerprintAndRecordSignup({ email, fingerprintHash, ip, projectId }: FingerprintRequestInput, env: Env) {
-	const session = env.vouch_db.withSession()
+	const session = env.vouch_db.withSession(`first-primary`)
 	// Check if fingerprint exists
 	const existing = await session
 		.prepare('SELECT emails_used, projects_seen FROM fingerprints WHERE hash = ?')
