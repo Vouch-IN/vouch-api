@@ -46,7 +46,11 @@ export class FingerprintStore extends DurableObject {
 
 		const { email, fingerprintHash } = body
 
+		const startGet = performance.now()
 		const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
+		const getDuration = performance.now() - startGet
+
+		console.log(`FingerprintStore check latency: ${getDuration}ms`)
 
 		if (!data) {
 			return jsonResponse({
@@ -74,7 +78,9 @@ export class FingerprintStore extends DurableObject {
 		const body: RecordSignupRequest = await request.json()
 		const { email, fingerprintHash, ip, projectId } = body
 
+		const startGet = performance.now()
 		let data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
+		const getDuration = performance.now() - startGet
 
 		if (!data) {
 			data = {
@@ -98,7 +104,11 @@ export class FingerprintStore extends DurableObject {
 			data.lastIP = ip
 		}
 
+		const startPut = performance.now()
 		await this.ctx.storage.put(fingerprintHash, data)
+		const putDuration = performance.now() - startPut
+
+		console.log(`FingerprintStore record latency: getDuration: ${getDuration}ms, putDuration: ${putDuration}ms, total: ${getDuration + putDuration}ms`)
 
 		return jsonResponse({ success: true })
 	}
