@@ -25,10 +25,6 @@ export default {
 				return await handleValidation(request, env)
 			}
 
-			if (url.pathname === '/admin/sync-domains') {
-				return await syncDisposableDomains(env)
-			}
-
 			return new Response('Not found', { status: 404 })
 		} catch (error) {
 			return handleError(error)
