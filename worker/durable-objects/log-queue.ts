@@ -3,7 +3,6 @@ import { DurableObject } from 'cloudflare:workers'
 import { LOG_QUEUE_BATCH_SIZE, MAX_LOG_QUEUE_SIZE } from '../constants'
 import { createClient, type SupabaseClient } from '../lib/supabase'
 import type { TablesInsert, ValidationLog } from '../types'
-import { errorResponse, jsonResponse } from '../utils'
 
 type EnqueueRequest = {
 	logs: ValidationLog[]
@@ -18,21 +17,7 @@ export class LogQueue extends DurableObject {
 		this.client = createClient(env)
 	}
 
-	async fetch(request: Request): Promise<Response> {
-		const url = new URL(request.url)
-		if (url.pathname === '/enqueue') return this.enqueue(request)
-		if (url.pathname === '/flush') return this.flush()
-		if (url.pathname === '/status') {
-			const queue = (await this.ctx.storage.get<ValidationLog[]>('queue')) ?? []
-			return jsonResponse({ queueSize: queue.length })
-		}
-		return errorResponse('not_found', '404 Not Found', 404)
-	}
-
-	private async enqueue(request: Request): Promise<Response> {
-		const body: EnqueueRequest = await request.json()
-		const { logs } = body
-
+	async enqueue({ logs }: EnqueueRequest) {
 		let queue = (await this.ctx.storage.get<ValidationLog[]>('queue')) ?? []
 
 		queue.push(...logs)
@@ -48,22 +33,27 @@ export class LogQueue extends DurableObject {
 			console.error('Flush failed:', err)
 		})
 
-		return jsonResponse({
+		return {
 			queued: logs.length,
 			totalQueue: queue.length
-		})
+		}
 	}
 
-	private async flush(): Promise<Response> {
+	async flush() {
 		await this.tryFlush()
 		const queue = (await this.ctx.storage.get<ValidationLog[]>('queue')) ?? []
-		return jsonResponse({
+		return {
 			remainingQueue: queue.length,
 			success: true
-		})
+		}
 	}
 
-	private async tryFlush(): Promise<void> {
+	async status() {
+		const queue = (await this.ctx.storage.get<ValidationLog[]>('queue')) ?? []
+		return { queueSize: queue.length }
+	}
+
+	async tryFlush() {
 		if (this.isFlushing) return
 		this.isFlushing = true
 

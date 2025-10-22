@@ -20,7 +20,7 @@ type RequestInput = {
 }
 
 export class FingerprintStore extends DurableObject<Env> {
-	async checkFingerprint({ email, fingerprintHash }: RequestInput): Promise<DeviceData> {
+	async check({ email, fingerprintHash }: RequestInput): Promise<DeviceData> {
 		const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
 
 		if (!data) {
@@ -45,17 +45,17 @@ export class FingerprintStore extends DurableObject<Env> {
 		} satisfies DeviceData
 	}
 
-	async checkFingerprintAndRecordSignup(request: RequestInput) {
-		const deviceData = await this.checkFingerprint(request)
+	async checkAndRecord(request: RequestInput) {
+		const deviceData = await this.check(request)
 
-		this.recordSignup(request).catch((error: unknown) => {
+		this.record(request).catch((error: unknown) => {
 			console.error('Failed to record signup:', error)
 		})
 
 		return deviceData
 	}
 
-	async recordSignup({ email, fingerprintHash, ip, projectId }: RequestInput): Promise<FingerprintData> {
+	async record({ email, fingerprintHash, ip, projectId }: RequestInput): Promise<FingerprintData> {
 		let data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
 
 		if (!data) {

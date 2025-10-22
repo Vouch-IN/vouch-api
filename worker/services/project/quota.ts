@@ -8,14 +8,10 @@ export async function checkUsageQuota(projectId: string, entitlements: Entitleme
 	const id = env.USAGE_COUNTER.idFromName(`${projectId}:${currentMonth}`)
 	const stub = env.USAGE_COUNTER.get(id)
 
-	const response = await stub.fetch('https://do/check', {
-		body: JSON.stringify({ month: currentMonth, projectId }),
-		headers: { 'Content-Type': 'application/json' },
-		method: 'POST'
+	const { count, resetAt } = await stub.check({
+		month: currentMonth,
+		projectId
 	})
-
-	const body: { count: number; resetAt: number } = await response.json()
-	const { count, resetAt } = body
 
 	const limit = entitlements.validationsLimit ?? FREE_VALIDATIONS_LIMIT
 
@@ -44,8 +40,5 @@ export async function incrementUsage(projectId: string, env: Env): Promise<void>
 	const id = env.USAGE_COUNTER.idFromName(`${projectId}:${currentMonth}`)
 	const stub = env.USAGE_COUNTER.get(id)
 
-	await stub.fetch('https://do/increment', {
-		body: JSON.stringify({ month: currentMonth, projectId }),
-		method: 'POST'
-	})
+	await stub.increment({ month: currentMonth, projectId })
 }

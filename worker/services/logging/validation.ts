@@ -38,9 +38,5 @@ export async function recordValidationLog(
 
 	const id = env.LOG_QUEUE.idFromName(projectId)
 	const stub = env.LOG_QUEUE.get(id)
-	await stub.fetch('https://do/enqueue', {
-		body: JSON.stringify({ logs: [log] }),
-		headers: { 'Content-Type': 'application/json' },
-		method: 'POST'
-	})
+	await stub.enqueue({ logs: [log] })
 }

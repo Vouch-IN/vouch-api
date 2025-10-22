@@ -30,7 +30,7 @@ async function flushOne(env: Env, name: string): Promise<void> {
 		const id = env.LOG_QUEUE.idFromName(name)
 		const stub = env.LOG_QUEUE.get(id)
 		// DO stubs require an absolute URL; the origin is ignored.
-		await stub.fetch('https://do/flush')
+		await stub.flush()
 	} catch (err) {
 		console.error('Failed to flush LogQueue DO for', name, err)
 	}

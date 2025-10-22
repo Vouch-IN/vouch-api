@@ -45,13 +45,13 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			timeout: 500
 		},
 		durableObjects: {
-			degradedAt: 300,
+			degradedAt: 150,
 			fn: async () => {
 				try {
 					const id = env.FINGERPRINTS.idFromName('health-check')
 					const stub = env.FINGERPRINTS.get(id)
 
-					await stub.checkFingerprintAndRecordSignup({
+					await stub.checkAndRecord({
 						email: 'health@example.com',
 						fingerprintHash: 'health-check',
 						ip: null,
@@ -63,7 +63,7 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 					return false
 				}
 			},
-			timeout: 500
+			timeout: 300
 		},
 		kv: {
 			degradedAt: 50,

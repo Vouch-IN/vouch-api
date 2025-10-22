@@ -11,7 +11,7 @@ export async function checkDeviceFingerprint(
 	const id = env.FINGERPRINTS.idFromName(fingerprintHash)
 	const stub = env.FINGERPRINTS.get(id)
 
-	return stub.checkFingerprintAndRecordSignup({
+	return stub.checkAndRecord({
 		email,
 		fingerprintHash,
 		ip,
