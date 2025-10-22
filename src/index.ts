@@ -1,4 +1,4 @@
-import { flushAllLogQueues } from './crons'
+import { flushAllLogQueues, syncDisposableDomains } from './crons'
 import { FingerprintStore, LogQueue, UsageCounter } from './durable-objects'
 import { handleHealth, handleValidation, handleWebhook } from './handlers'
 import { handleError } from './middleware'
@@ -25,16 +25,30 @@ export default {
 				return await handleValidation(request, env)
 			}
 
+			if (url.pathname === '/admin/sync-domains') {
+				return await syncDisposableDomains(env)
+			}
+
 			return new Response('Not found', { status: 404 })
 		} catch (error) {
 			return handleError(error)
 		}
 	},
-	async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
+	async scheduled(controller: ScheduledController, env: Env): Promise<void> {
 		try {
-			await flushAllLogQueues(env)
+			const cron = controller.cron
+
+			// Run log flush every hour
+			if (cron === '0 * * * *') {
+				await flushAllLogQueues(env)
+			}
+
+			// Run disposable domain sync daily at 2am UTC
+			if (cron === '0 2 * * *') {
+				await syncDisposableDomains(env)
+			}
 		} catch (error) {
-			console.error('Scheduled flush failed:', error)
+			console.error('Scheduled job failed:', error)
 		}
 	}
 }

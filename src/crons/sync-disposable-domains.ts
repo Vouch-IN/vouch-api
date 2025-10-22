@@ -1,7 +1,9 @@
 import { createClient } from '../lib/supabase'
+import { jsonResponse } from '../utils'
 
-export async function syncDisposableDomains(env: Env): Promise<void> {
+export async function syncDisposableDomains(env: Env): Promise<Response> {
 	console.log('Starting disposable domain sync...')
+	let results: Record<string, unknown> = {}
 
 	const client = createClient(env)
 
@@ -61,6 +63,8 @@ export async function syncDisposableDomains(env: Env): Promise<void> {
 			total_domains: allDomains.size
 		}
 
+		results = insertPayload
+
 		// Safety check to abort if too many removals
 		if (removed.length > cachedDomains.size * 0.1) {
 			console.error(`Sync aborted: Removing too many domains: ${removed.length}`)
@@ -69,7 +73,7 @@ export async function syncDisposableDomains(env: Env): Promise<void> {
 				error_message: 'Safety check failed: too many removals',
 				success: false
 			})
-			return
+			return jsonResponse(results)
 		}
 
 		// Update cache KV with full new list
@@ -112,4 +116,6 @@ export async function syncDisposableDomains(env: Env): Promise<void> {
 			total_domains: 0
 		})
 	}
+
+	return jsonResponse(results)
 }
