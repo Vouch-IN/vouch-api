@@ -58,7 +58,6 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 					// 	ip: null,
 					// 	projectId: 'health'
 					// })
-
 					await checkFingerprintAndRecordSignup(
 						{
 							email: 'health@example.com',
