@@ -1,7 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "vouch",
-	"main": "src/index.ts",
+	"main": "worker/index.ts",
 	"compatibility_date": "2025-10-08",
 	"durable_objects": {
 		"bindings": [
