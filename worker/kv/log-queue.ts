@@ -34,11 +34,6 @@ export async function flushLogs(projectId: string, env: Env) {
 	}
 }
 
-export async function logsStatus(projectId: string, env: Env) {
-	const queue = await getQueueLogs(projectId, env)
-	return { queueSize: queue.length }
-}
-
 export async function tryFlushLogs(projectId: string, env: Env) {
 	const client = createClient(env)
 
