@@ -1,7 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "vouch",
-	"main": "worker/index.ts",
+	"name": "vouch-api",
+	"main": "src/index.ts",
 	"compatibility_date": "2025-10-08",
 	"observability": {
 		"enabled": true
