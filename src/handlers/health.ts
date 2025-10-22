@@ -50,7 +50,8 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 				try {
 					const id = env.FINGERPRINTS.idFromName('health-check')
 					const stub = env.FINGERPRINTS.get(id)
-					// Write (record) then read (check)
+
+					const startRecord = performance.now()
 					await stub.fetch('https://do/record', {
 						body: JSON.stringify({
 							email: 'health@example.com',
@@ -61,11 +62,22 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 						headers: { 'Content-Type': 'application/json' },
 						method: 'POST'
 					})
+					const recordDuration = performance.now() - startRecord
+
+					const startCheck = performance.now()
 					const r = await stub.fetch('https://do/check', {
-						body: JSON.stringify({ email: 'health@example.com', fingerprintHash: 'health-check', projectId: 'health' }),
+						body: JSON.stringify({
+							email: 'health@example.com',
+							fingerprintHash: 'health-check',
+							projectId: 'health'
+						}),
 						headers: { 'Content-Type': 'application/json' },
 						method: 'POST'
 					})
+					const checkDuration = performance.now() - startCheck
+
+					console.log('DO health latencies ms', { checkDuration, recordDuration, total: recordDuration + checkDuration })
+
 					return r.ok
 				} catch {
 					return false
