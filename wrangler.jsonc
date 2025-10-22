@@ -22,7 +22,11 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_classes": ["FingerprintStore", "LogQueue", "UsageCounter"]
+			"new_classes": [
+				"FingerprintStore",
+				"LogQueue",
+				"UsageCounter"
+			]
 		}
 	],
 	"observability": {
@@ -62,9 +66,19 @@
 		"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert"
 	},
 	"triggers": {
-		"crons": ["0 * * * *", "0 2 * * *"]
+		"crons": [
+			"0 * * * *",
+			"0 2 * * *"
+		]
 	},
 	"placement": {
 		"mode": "smart"
-	}
+	},
+	"d1_databases": [
+		{
+			"binding": "vouch_db",
+			"database_name": "vouch-db",
+			"database_id": "bd464991-2ae1-40da-af89-a4af78e04ca4"
+		}
+	]
 }
