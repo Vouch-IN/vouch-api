@@ -25,7 +25,7 @@ export class FingerprintStore extends DurableObject<Env> {
 
 		const now = Date.now()
 
-		if (!data || Object.keys(data).length === 0) {
+		if (!data) {
 			const deviceData: DeviceData = {
 				emailsUsed: 0,
 				firstSeen: now,
