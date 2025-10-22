@@ -1,4 +1,3 @@
-import { checkFingerprintAndRecordSignup } from '../../d1/fingerprints'
 import type { DeviceData } from '../../types'
 
 export async function checkDeviceFingerprint(
@@ -8,24 +7,14 @@ export async function checkDeviceFingerprint(
 	ip: null | string,
 	env: Env
 ): Promise<DeviceData> {
-	// // Get Durable Object stub
-	// const id = env.FINGERPRINTS.idFromName(fingerprintHash)
-	// const stub = env.FINGERPRINTS.get(id)
-	//
-	// return stub.checkAndRecord({
-	// 	email,
-	// 	fingerprintHash,
-	// 	ip,
-	// 	projectId
-	// })
+	// Get Durable Object stub
+	const id = env.FINGERPRINTS.idFromName(fingerprintHash)
+	const stub = env.FINGERPRINTS.get(id)
 
-	return checkFingerprintAndRecordSignup(
-		{
-			email,
-			fingerprintHash,
-			ip,
-			projectId
-		},
-		env
-	)
+	return stub.checkAndRecord({
+		email,
+		fingerprintHash,
+		ip,
+		projectId
+	})
 }

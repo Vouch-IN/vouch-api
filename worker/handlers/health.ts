@@ -1,4 +1,3 @@
-import { checkFingerprintAndRecordSignup } from '../d1/fingerprints'
 import { type MXResponse } from '../types'
 import { jsonResponse } from '../utils'
 
@@ -49,25 +48,15 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			degradedAt: 150,
 			fn: async () => {
 				try {
-					// const id = env.FINGERPRINTS.idFromName('health-check')
-					// const stub = env.FINGERPRINTS.get(id)
-					//
-					// await stub.checkAndRecord({
-					// 	email: 'health@example.com',
-					// 	fingerprintHash: 'health-check',
-					// 	ip: null,
-					// 	projectId: 'health'
-					// })
+					const id = env.FINGERPRINTS.idFromName('health-check')
+					const stub = env.FINGERPRINTS.get(id)
 
-					await checkFingerprintAndRecordSignup(
-						{
-							email: 'health@example.com',
-							fingerprintHash: 'health-check',
-							ip: null,
-							projectId: 'health'
-						},
-						env
-					)
+					await stub.checkAndRecord({
+						email: 'health@example.com',
+						fingerprintHash: 'health-check',
+						ip: null,
+						projectId: 'health'
+					})
 
 					return true
 				} catch {
