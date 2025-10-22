@@ -42,7 +42,11 @@ export class FingerprintStore extends DurableObject {
 	}
 
 	private async checkFingerprint(request: Request): Promise<Response> {
+		const startTotal = performance.now()
+
+		const startParse = performance.now()
 		const body: CheckFingerprintRequest = await request.json()
+		const parseDuration = performance.now() - startParse
 
 		const { email, fingerprintHash } = body
 
@@ -50,7 +54,9 @@ export class FingerprintStore extends DurableObject {
 		const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
 		const getDuration = performance.now() - startGet
 
-		console.log(`FingerprintStore check latency: ${getDuration}ms`)
+		const totalDuration = performance.now() - startTotal
+
+		console.log(`FingerprintStore check latency: parseDuration: ${parseDuration}ms, getDuration: ${getDuration}ms, total: ${totalDuration}ms`)
 
 		if (!data) {
 			return jsonResponse({
@@ -75,7 +81,12 @@ export class FingerprintStore extends DurableObject {
 	}
 
 	private async recordSignup(request: Request): Promise<Response> {
+		const startTotal = performance.now()
+
+		const startParse = performance.now()
 		const body: RecordSignupRequest = await request.json()
+		const parseDuration = performance.now() - startParse
+
 		const { email, fingerprintHash, ip, projectId } = body
 
 		const startGet = performance.now()
@@ -104,12 +115,14 @@ export class FingerprintStore extends DurableObject {
 			data.lastIP = ip
 		}
 
-		const startPut = performance.now()
-		await this.ctx.storage.put(fingerprintHash, data)
-		const putDuration = performance.now() - startPut
+ 	const startPut = performance.now()
+ 	await this.ctx.storage.put(fingerprintHash, data)
+ 	const putDuration = performance.now() - startPut
 
-		console.log(`FingerprintStore record latency: getDuration: ${getDuration}ms, putDuration: ${putDuration}ms, total: ${getDuration + putDuration}ms`)
+ 	const totalDuration = performance.now() - startTotal
 
-		return jsonResponse({ success: true })
+ 	console.log(`FingerprintStore record latency: parseDuration: ${parseDuration}ms, getDuration: ${getDuration}ms, putDuration: ${putDuration}ms, total: ${totalDuration}ms`)
+
+ 	return jsonResponse({ success: true })
 	}
 }
