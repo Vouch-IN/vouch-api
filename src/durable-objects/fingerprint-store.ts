@@ -28,13 +28,18 @@ type RecordSignupRequest = {
 
 export class FingerprintStore extends DurableObject {
 	async fetch(request: Request): Promise<Response> {
+		const startFetch = performance.now()
 		const url = new URL(request.url)
 
 		if (url.pathname === '/check') {
+			const routingDuration = performance.now() - startFetch
+			console.log(`DO fetch() routing to checkFingerprint: ${routingDuration}ms`)
 			return this.checkFingerprint(request)
 		}
 
 		if (url.pathname === '/record') {
+			const routingDuration = performance.now() - startFetch
+			console.log(`DO fetch() routing to recordSignup: ${routingDuration}ms`)
 			return this.recordSignup(request)
 		}
 
