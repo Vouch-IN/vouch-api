@@ -19,7 +19,8 @@
 		"prepare": "npm run types:cf"
 	},
 	"dependencies": {
-		"@supabase/supabase-js": "^2.76.0"
+		"@supabase/supabase-js": "^2.76.0",
+		"tslib": "^2.8.1"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.38.0",
