@@ -2,3 +2,6 @@ onlyBuiltDependencies:
   - esbuild
   - supabase
   - workerd
+
+packages:
+ - .
