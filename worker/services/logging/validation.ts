@@ -1,3 +1,4 @@
+import { enqueueLogs } from '../../kv'
 import { type Recommendation, type RiskThresholds, type ValidationLog, type ValidationResults } from '../../types'
 import { encrypt, sha256Hex } from '../../utils'
 
@@ -36,7 +37,5 @@ export async function recordValidationLog(
 		signals: validationResults.signals
 	}
 
-	const id = env.LOG_QUEUE.idFromName(projectId)
-	const stub = env.LOG_QUEUE.get(id)
-	await stub.enqueue({ logs: [log] })
+	await enqueueLogs(projectId, [log], env)
 }

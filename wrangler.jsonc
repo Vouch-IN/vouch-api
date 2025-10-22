@@ -3,24 +3,6 @@
 	"name": "vouch",
 	"main": "worker/index.ts",
 	"compatibility_date": "2025-10-08",
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "LOG_QUEUE",
-				"class_name": "LogQueue"
-			},
-			{
-				"name": "USAGE_COUNTER",
-				"class_name": "UsageCounter"
-			}
-		]
-	},
-	"migrations": [
-		{
-			"tag": "v1",
-			"new_classes": ["FingerprintStore", "LogQueue", "UsageCounter"]
-		}
-	],
 	"observability": {
 		"enabled": true
 	},
@@ -44,6 +26,14 @@
 		{
 			"binding": "FINGERPRINTS",
 			"id": "34d4c1623171400aa992189f165ffff5"
+		},
+		{
+			"binding": "LOG_QUEUE",
+			"id": "61b9038373a1445a85875b2d805a38b0"
+		},
+		{
+			"binding": "USAGE_COUNTER",
+			"id": "e3805753f5b44bc0be4aa1e80043d73e"
 		}
 	],
 	"env": {

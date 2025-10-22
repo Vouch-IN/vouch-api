@@ -1,4 +1,4 @@
-import { checkFingerprintAndRecordSignup } from '../../kv/fingerprint-store'
+import { checkFingerprintAndRecordSignup } from '../../kv'
 import type { DeviceData } from '../../types'
 
 export async function checkDeviceFingerprint(
@@ -8,17 +8,6 @@ export async function checkDeviceFingerprint(
 	ip: null | string,
 	env: Env
 ): Promise<DeviceData> {
-	// // Get Durable Object stub
-	// const id = env.FINGERPRINTS.idFromName(fingerprintHash)
-	// const stub = env.FINGERPRINTS.get(id)
-	//
-	// return stub.checkAndRecord({
-	// 	email,
-	// 	fingerprintHash,
-	// 	ip,
-	// 	projectId
-	// })
-
 	return checkFingerprintAndRecordSignup(
 		{
 			email,

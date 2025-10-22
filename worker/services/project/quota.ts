@@ -1,17 +1,11 @@
 import { FREE_VALIDATIONS_LIMIT } from '../../constants'
+import { checkUsage, increment } from '../../kv'
 import { type Entitlements, type QuotaResult } from '../../types'
 
 export async function checkUsageQuota(projectId: string, entitlements: Entitlements, env: Env): Promise<QuotaResult> {
 	const currentMonth = new Date().toISOString().substring(0, 7)
 
-	// Get usage from Durable Object (source of truth)
-	const id = env.USAGE_COUNTER.idFromName(`${projectId}:${currentMonth}`)
-	const stub = env.USAGE_COUNTER.get(id)
-
-	const { count, resetAt } = await stub.check({
-		month: currentMonth,
-		projectId
-	})
+	const { count, resetAt } = await checkUsage({ month: currentMonth, projectId }, env)
 
 	const limit = entitlements.validationsLimit ?? FREE_VALIDATIONS_LIMIT
 
@@ -37,8 +31,5 @@ export async function checkUsageQuota(projectId: string, entitlements: Entitleme
 export async function incrementUsage(projectId: string, env: Env): Promise<void> {
 	const currentMonth = new Date().toISOString().substring(0, 7)
 
-	const id = env.USAGE_COUNTER.idFromName(`${projectId}:${currentMonth}`)
-	const stub = env.USAGE_COUNTER.get(id)
-
-	await stub.increment({ month: currentMonth, projectId })
+	await increment({ month: currentMonth, projectId }, env)
 }

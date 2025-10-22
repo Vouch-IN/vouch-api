@@ -1,4 +1,4 @@
-import { checkFingerprintAndRecordSignup } from '../kv/fingerprint-store'
+import { checkFingerprintAndRecordSignup } from '../kv'
 import { type MXResponse } from '../types'
 import { jsonResponse } from '../utils'
 
@@ -45,19 +45,23 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			},
 			timeout: 500
 		},
-		durableObjects: {
+		domains: {
+			degradedAt: 50,
+			fn: async () => {
+				try {
+					// Small metadata fetch rather than full list
+					const meta = await env.DISPOSABLE_DOMAINS.get('domains:metadata')
+					return meta !== null
+				} catch {
+					return false
+				}
+			},
+			timeout: 100
+		},
+		fingerprint: {
 			degradedAt: 150,
 			fn: async () => {
 				try {
-					// const id = env.FINGERPRINTS.idFromName('health-check')
-					// const stub = env.FINGERPRINTS.get(id)
-					//
-					// await stub.checkAndRecord({
-					// 	email: 'health@example.com',
-					// 	fingerprintHash: 'health-check',
-					// 	ip: null,
-					// 	projectId: 'health'
-					// })
 					await checkFingerprintAndRecordSignup(
 						{
 							email: 'health@example.com',
@@ -74,19 +78,6 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 				}
 			},
 			timeout: 300
-		},
-		kv: {
-			degradedAt: 50,
-			fn: async () => {
-				try {
-					// Small metadata fetch rather than full list
-					const meta = await env.DISPOSABLE_DOMAINS.get('domains:metadata')
-					return meta !== null
-				} catch {
-					return false
-				}
-			},
-			timeout: 100
 		},
 		supabase: {
 			degradedAt: 500,
@@ -119,7 +110,7 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 	>
 
 	// Compute overall status per rules
-	const coreNames = new Set(['durableObjects', 'kv', 'workers'])
+	const coreNames = new Set(['domains', 'fingerprint', 'workers'])
 	let overall: 'degraded' | 'down' | 'operational' = 'operational'
 	const anyDown = Object.values(components).some((c) => c.status === 'down')
 	const anyCoreDown = Object.entries(components).some(([name, c]) => coreNames.has(name) && c.status === 'down')
