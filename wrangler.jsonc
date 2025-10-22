@@ -62,7 +62,7 @@
 		"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert"
 	},
 	"triggers": {
-		"crons": ["0 */6 * * *"]
+		"crons": ["0 * * * *", "0 2 * * *"]
 	},
 	"placement": {
 		"mode": "smart"

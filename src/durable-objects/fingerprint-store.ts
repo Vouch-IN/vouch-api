@@ -28,18 +28,13 @@ type RecordSignupRequest = {
 
 export class FingerprintStore extends DurableObject {
 	async fetch(request: Request): Promise<Response> {
-		const startFetch = performance.now()
 		const url = new URL(request.url)
 
 		if (url.pathname === '/check') {
-			const routingDuration = performance.now() - startFetch
-			console.log(`DO fetch() routing to checkFingerprint: ${routingDuration}ms`)
 			return this.checkFingerprint(request)
 		}
 
 		if (url.pathname === '/record') {
-			const routingDuration = performance.now() - startFetch
-			console.log(`DO fetch() routing to recordSignup: ${routingDuration}ms`)
 			return this.recordSignup(request)
 		}
 
@@ -47,21 +42,9 @@ export class FingerprintStore extends DurableObject {
 	}
 
 	private async checkFingerprint(request: Request): Promise<Response> {
-		const startTotal = performance.now()
-
-		const startParse = performance.now()
 		const body: CheckFingerprintRequest = await request.json()
-		const parseDuration = performance.now() - startParse
-
 		const { email, fingerprintHash } = body
-
-		const startGet = performance.now()
 		const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
-		const getDuration = performance.now() - startGet
-
-		const totalDuration = performance.now() - startTotal
-
-		console.log(`FingerprintStore check latency: parseDuration: ${parseDuration}ms, getDuration: ${getDuration}ms, total: ${totalDuration}ms`)
 
 		if (!data) {
 			return jsonResponse({
@@ -86,17 +69,9 @@ export class FingerprintStore extends DurableObject {
 	}
 
 	private async recordSignup(request: Request): Promise<Response> {
-		const startTotal = performance.now()
-
-		const startParse = performance.now()
 		const body: RecordSignupRequest = await request.json()
-		const parseDuration = performance.now() - startParse
-
 		const { email, fingerprintHash, ip, projectId } = body
-
-		const startGet = performance.now()
 		let data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
-		const getDuration = performance.now() - startGet
 
 		if (!data) {
 			data = {
@@ -120,14 +95,7 @@ export class FingerprintStore extends DurableObject {
 			data.lastIP = ip
 		}
 
- 	const startPut = performance.now()
- 	await this.ctx.storage.put(fingerprintHash, data)
- 	const putDuration = performance.now() - startPut
-
- 	const totalDuration = performance.now() - startTotal
-
- 	console.log(`FingerprintStore record latency: parseDuration: ${parseDuration}ms, getDuration: ${getDuration}ms, putDuration: ${putDuration}ms, total: ${totalDuration}ms`)
-
- 	return jsonResponse({ success: true })
+		await this.ctx.storage.put(fingerprintHash, data)
+		return jsonResponse({ success: true })
 	}
 }

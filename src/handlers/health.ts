@@ -45,16 +45,12 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			timeout: 500
 		},
 		durableObjects: {
-			degradedAt: 150,
+			degradedAt: 300,
 			fn: async () => {
 				try {
-					const startStubCreation = performance.now()
 					const id = env.FINGERPRINTS.idFromName('health-check')
 					const stub = env.FINGERPRINTS.get(id)
-					const stubCreationDuration = performance.now() - startStubCreation
 
-					const startRecord = performance.now()
-					const startRecordFetch = performance.now()
 					await stub.fetch('https://do/record', {
 						body: JSON.stringify({
 							email: 'health@example.com',
@@ -65,11 +61,7 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 						headers: { 'Content-Type': 'application/json' },
 						method: 'POST'
 					})
-					const recordFetchDuration = performance.now() - startRecordFetch
-					const recordDuration = performance.now() - startRecord
 
-					const startCheck = performance.now()
-					const startCheckFetch = performance.now()
 					const r = await stub.fetch('https://do/check', {
 						body: JSON.stringify({
 							email: 'health@example.com',
@@ -79,19 +71,13 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 						headers: { 'Content-Type': 'application/json' },
 						method: 'POST'
 					})
-					const checkFetchDuration = performance.now() - startCheckFetch
-					const checkDuration = performance.now() - startCheck
-
-					console.log(
-						`DO health latencies - stubCreation: ${stubCreationDuration}ms, recordFetch: ${recordFetchDuration}ms, recordTotal: ${recordDuration}ms, checkFetch: ${checkFetchDuration}ms, checkTotal: ${checkDuration}ms, total: ${recordDuration + checkDuration}ms`
-					)
 
 					return r.ok
 				} catch {
 					return false
 				}
 			},
-			timeout: 300
+			timeout: 500
 		},
 		kv: {
 			degradedAt: 50,
