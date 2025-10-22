@@ -76,7 +76,9 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 					})
 					const checkDuration = performance.now() - startCheck
 
-					console.log('DO health latencies ms', { checkDuration, recordDuration, total: recordDuration + checkDuration })
+					console.log(
+						`DO health latencies checkDuration: ${checkDuration}ms, recordDuration: ${recordDuration}ms, total: ${recordDuration + checkDuration}ms`
+					)
 
 					return r.ok
 				} catch {
