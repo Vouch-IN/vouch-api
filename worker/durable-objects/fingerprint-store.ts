@@ -1,13 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 
 import type { DeviceData } from '../types'
-import { errorResponse, jsonResponse } from '../utils'
-
-type CheckFingerprintRequest = {
-	email: string
-	fingerprintHash: string
-	projectId: string
-}
 
 type FingerprintData = {
 	emailsUsed: string[]
@@ -19,58 +12,50 @@ type FingerprintData = {
 	signupCount: number
 }
 
-type RecordSignupRequest = {
+type RequestInput = {
 	email: string
 	fingerprintHash: string
 	ip: null | string
 	projectId: string
 }
 
-export class FingerprintStore extends DurableObject {
-	async fetch(request: Request): Promise<Response> {
-		const url = new URL(request.url)
-
-		if (url.pathname === '/check') {
-			return this.checkFingerprint(request)
-		}
-
-		if (url.pathname === '/record') {
-			return this.recordSignup(request)
-		}
-
-		return errorResponse('not_found', '404 Not Found', 404)
-	}
-
-	private async checkFingerprint(request: Request): Promise<Response> {
-		const body: CheckFingerprintRequest = await request.json()
-		const { email, fingerprintHash } = body
+export class FingerprintStore extends DurableObject<Env> {
+	async checkFingerprint({ email, fingerprintHash }: RequestInput): Promise<DeviceData> {
 		const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
 
 		if (!data) {
-			return jsonResponse({
+			return {
 				emailsUsed: 0,
 				firstSeen: Date.now(),
 				isKnownDevice: false,
 				isNewEmail: false,
 				previousSignups: 0
-			} satisfies DeviceData)
+			} satisfies DeviceData
 		}
 
 		const isNewEmail = !data.emailsUsed.includes(email)
 
-		return jsonResponse({
+		return {
 			emailsUsed: data.emailsUsed.length,
 			firstSeen: data.firstSeen,
 			isKnownDevice: true,
 			isNewEmail,
 			lastSeen: data.lastSeen,
 			previousSignups: data.signupCount
-		} satisfies DeviceData)
+		} satisfies DeviceData
 	}
 
-	private async recordSignup(request: Request): Promise<Response> {
-		const body: RecordSignupRequest = await request.json()
-		const { email, fingerprintHash, ip, projectId } = body
+	async checkFingerprintAndRecordSignup(request: RequestInput) {
+		const deviceData = await this.checkFingerprint(request)
+
+		this.recordSignup(request).catch((error: unknown) => {
+			console.error('Failed to record signup:', error)
+		})
+
+		return deviceData
+	}
+
+	async recordSignup({ email, fingerprintHash, ip, projectId }: RequestInput): Promise<FingerprintData> {
 		let data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
 
 		if (!data) {
@@ -96,6 +81,7 @@ export class FingerprintStore extends DurableObject {
 		}
 
 		await this.ctx.storage.put(fingerprintHash, data)
-		return jsonResponse({ success: true })
+
+		return data
 	}
 }

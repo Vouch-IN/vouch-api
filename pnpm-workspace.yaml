@@ -1,7 +1,8 @@
+packages:
+  - .
+
 onlyBuiltDependencies:
   - esbuild
+  - sharp
   - supabase
   - workerd
-
-packages:
- - .

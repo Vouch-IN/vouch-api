@@ -265,7 +265,7 @@ export type Database = {
 					email_hash: string
 					fingerprint_id: string | null
 					id: string
-					ip_address: unknown | null
+					ip_address: unknown
 					is_valid: boolean
 					latency_ms: number | null
 					project_id: string | null
@@ -280,7 +280,7 @@ export type Database = {
 					email_hash: string
 					fingerprint_id?: string | null
 					id?: string
-					ip_address?: unknown | null
+					ip_address?: unknown
 					is_valid: boolean
 					latency_ms?: number | null
 					project_id?: string | null
@@ -295,7 +295,7 @@ export type Database = {
 					email_hash?: string
 					fingerprint_id?: string | null
 					id?: string
-					ip_address?: unknown | null
+					ip_address?: unknown
 					is_valid?: boolean
 					latency_ms?: number | null
 					project_id?: string | null
@@ -318,10 +318,7 @@ export type Database = {
 			[_ in never]: never
 		}
 		Functions: {
-			delete_old_logs: {
-				Args: Record<PropertyKey, never>
-				Returns: undefined
-			}
+			delete_old_logs: { Args: never; Returns: undefined }
 			reset_usage_for_project: {
 				Args: { p_current_period_end: string; p_project_id: string }
 				Returns: undefined

@@ -51,28 +51,14 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 					const id = env.FINGERPRINTS.idFromName('health-check')
 					const stub = env.FINGERPRINTS.get(id)
 
-					await stub.fetch('https://do/record', {
-						body: JSON.stringify({
-							email: 'health@example.com',
-							fingerprintHash: 'health-check',
-							ip: null,
-							projectId: 'health'
-						}),
-						headers: { 'Content-Type': 'application/json' },
-						method: 'POST'
+					await stub.checkFingerprintAndRecordSignup({
+						email: 'health@example.com',
+						fingerprintHash: 'health-check',
+						ip: null,
+						projectId: 'health'
 					})
 
-					const r = await stub.fetch('https://do/check', {
-						body: JSON.stringify({
-							email: 'health@example.com',
-							fingerprintHash: 'health-check',
-							projectId: 'health'
-						}),
-						headers: { 'Content-Type': 'application/json' },
-						method: 'POST'
-					})
-
-					return r.ok
+					return true
 				} catch {
 					return false
 				}

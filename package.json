@@ -8,7 +8,7 @@
 		"deploy:production": "wrangler deploy --env production",
 		"types": "npm run types:cf && npm run types:db",
 		"types:cf": "wrangler types && prettier --write worker-configuration.d.ts",
-		"types:db": "supabase gen types typescript --project-id \"jdgcsdazjypgabvkiwky\" > src/types/database.types.ts && prettier --write src/types/database.types.ts",
+		"types:db": "supabase gen types typescript --project-id \"jdgcsdazjypgabvkiwky\" > worker/types/database.types.ts && prettier --write worker/types/database.types.ts",
 		"lint": "eslint . --max-warnings 0",
 		"lint:fix": "eslint . --fix",
 		"format": "prettier --write .",
