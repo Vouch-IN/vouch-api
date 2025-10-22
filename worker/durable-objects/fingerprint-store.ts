@@ -1,3 +1,4 @@
+import { Redis } from '@upstash/redis/cloudflare'
 import { DurableObject } from 'cloudflare:workers'
 
 import type { DeviceData } from '../types'
@@ -21,11 +22,14 @@ type FingerprintRequestInput = {
 
 export class FingerprintStore extends DurableObject<Env> {
 	async checkAndRecord({ email, fingerprintHash, ip, projectId }: FingerprintRequestInput) {
-		const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
+		const redis = Redis.fromEnv(this.env)
+		const key = `fp:${fingerprintHash}`
+		const data = await redis.hgetall<FingerprintData>(key)
+		// const data = await this.ctx.storage.get<FingerprintData>(fingerprintHash)
 
 		const now = Date.now()
 
-		if (!data) {
+		if (!data || Object.keys(data).length === 0) {
 			const deviceData: DeviceData = {
 				emailsUsed: 0,
 				firstSeen: now,
@@ -44,9 +48,13 @@ export class FingerprintStore extends DurableObject<Env> {
 				signupCount: 1
 			}
 
-			this.ctx.storage.put(fingerprintHash, fingerprintData).catch((error: unknown) => {
+			redis.hset(key, fingerprintData).catch((error: unknown) => {
 				console.log('Error while updating fingerprint', error)
 			})
+
+			// this.ctx.storage.put(fingerprintHash, fingerprintData).catch((error: unknown) => {
+			// 	console.log('Error while updating fingerprint', error)
+			// })
 
 			return deviceData
 		} else {
@@ -69,7 +77,13 @@ export class FingerprintStore extends DurableObject<Env> {
 			data.signupCount++
 			data.lastSeen = now
 
-			await this.ctx.storage.put(fingerprintHash, data)
+			redis.hset(key, data).catch((error: unknown) => {
+				console.log('Error while updating fingerprint', error)
+			})
+
+			// this.ctx.storage.put(fingerprintHash, data).catch((error: unknown) => {
+			// 	console.log('Error while updating fingerprint', error)
+			// })
 
 			return deviceData
 		}
