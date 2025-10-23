@@ -1,1 +1,1 @@
-export * from './reputation';
+export * from './reputation'

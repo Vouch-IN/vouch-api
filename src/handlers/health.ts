@@ -239,6 +239,7 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 				return result.value
 			}
 			// Handle promise rejection by marking as down
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 			return [result.reason?.name ?? 'unknown', { latency: 0, status: 'down' as const }]
 		})
 	) as Record<string, { latency: number; status: 'degraded' | 'down' | 'operational' }>

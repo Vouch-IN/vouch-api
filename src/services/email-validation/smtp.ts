@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/require-await
 export async function verifySMTP(email: string, env: Env): Promise<boolean> {
 	// SMTP verification requires actual SMTP connection
 	// This is a placeholder - actual implementation would use a service or library

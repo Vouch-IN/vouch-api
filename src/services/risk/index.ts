@@ -1,2 +1,2 @@
-export * from './scoring';
-export * from './recommendation';
+export * from './recommendation'
+export * from './scoring'

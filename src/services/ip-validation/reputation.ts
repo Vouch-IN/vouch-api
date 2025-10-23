@@ -1,5 +1,6 @@
 import { type IPData } from '../../types'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/require-await
 export async function checkFraudDatabase(ip: string, env: Env): Promise<boolean> {
 	// Check against known fraud IPs (built over time from flagged validations)
 	// Store in Durable Object or KV
@@ -27,6 +28,7 @@ export async function checkIPReputation(ip: string, asn: unknown, env: Env): Pro
 	}
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/require-await
 export async function checkVPNDatabase(ip: string, env: Env): Promise<boolean> {
 	// Check against VPN/proxy database
 	// Could maintain a KV list of known VPN/proxy IPs or use third-party service

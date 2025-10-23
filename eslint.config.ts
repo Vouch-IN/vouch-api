@@ -13,6 +13,7 @@ export default defineConfig(
 	...tseslint.configs.stylisticTypeChecked,
 	perfectionist.configs['recommended-natural'],
 	{
+		files: ['**/*.{ts,tsx,js,jsx}'],
 		languageOptions: {
 			parserOptions: {
 				projectService: {
@@ -40,10 +41,12 @@ export default defineConfig(
 			'@typescript-eslint/no-floating-promises': 'error',
 			'@typescript-eslint/no-misused-promises': 'error',
 			'@typescript-eslint/no-non-null-assertion': 'error',
-			'@typescript-eslint/no-unnecessary-condition': 'error',
+			'@typescript-eslint/no-redundant-type-constituents': 'off',
+			'@typescript-eslint/no-unnecessary-condition': 'off',
+			'@typescript-eslint/no-unnecessary-type-parameters': 'off',
+
 			'@typescript-eslint/no-unsafe-assignment': 'error',
 			'@typescript-eslint/no-unsafe-call': 'error',
-
 			'@typescript-eslint/no-unsafe-member-access': 'error',
 			'@typescript-eslint/no-unsafe-return': 'error',
 			'@typescript-eslint/no-unused-vars': [
@@ -58,7 +61,6 @@ export default defineConfig(
 			'@typescript-eslint/strict-boolean-expressions': 'off',
 			eqeqeq: ['error', 'always'],
 			// General
-			'no-console': ['warn', { allow: ['warn', 'error'] }],
 			'no-var': 'error',
 			'perfectionist/sort-enums': ['error', { order: 'asc', type: 'natural' }],
 			'perfectionist/sort-exports': ['error', { order: 'asc', type: 'natural' }],

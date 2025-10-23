@@ -16,7 +16,7 @@
 		"type-check": "tsc --noEmit",
 		"check": "npm run type-check && npm run lint && npm run format:check",
 		"fix": "npm run lint:fix && npm run format",
-		"prepare": "npm run types:cf"
+		"prepare": "npm run types"
 	},
 	"dependencies": {
 		"@supabase/supabase-js": "^2.76.0"
