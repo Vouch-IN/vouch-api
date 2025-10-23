@@ -106,12 +106,12 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			auth.projectId,
 			email,
 			finalResults,
-			thresholds,
 			fingerprintHash,
 			ip,
 			riskScore,
 			recommendation,
 			totalLatency,
+			isValid,
 			env
 		).catch((error: unknown) => {
 			console.error('Failed to log validation:', error)

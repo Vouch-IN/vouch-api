@@ -11,9 +11,12 @@ export async function checkMXRecords(email: string, domainPart: string, env: Env
 		const r = await withTimeout(fetch(`https://dns.google/resolve?name=${encodeURIComponent(domainPart)}&type=MX`), 600)
 		if (r.ok) {
 			const data: MXResponse = await r.json()
+			// TODO: Check MX records status
 			hasMX = Array.isArray(data.Answer) && data.Answer.length > 0
 			// Cache result for 1 day
-			await env.MX_CACHE.put(cacheKey, JSON.stringify({ hasMX }), { expirationTtl: 86400 })
+			env.MX_CACHE.put(cacheKey, JSON.stringify({ hasMX }), { expirationTtl: 86400 }).catch((error: unknown) => {
+				console.error('Error caching mx records', error)
+			})
 		} else {
 			hasMX = null
 		}

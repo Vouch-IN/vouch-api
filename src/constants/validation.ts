@@ -13,7 +13,7 @@ export const DEFAULT_VALIDATIONS: ValidationToggles = {
 	disposable: true,
 	ip: true,
 	mx: true,
-	roleEmail: true,
+	roleEmail: false,
 	smtp: false,
 	syntax: true
 }

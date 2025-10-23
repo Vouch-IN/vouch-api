@@ -60,9 +60,8 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			degradedAt: 50,
 			fn: async () => {
 				try {
-					// Small metadata fetch rather than full list
-					const meta = await env.DISPOSABLE_DOMAINS.get('domains:metadata')
-					return meta !== null
+					const list = (await env.DISPOSABLE_DOMAINS.get<string[]>('domains:list', { type: 'json' })) ?? []
+					return list.length > 0
 				} catch {
 					return false
 				}

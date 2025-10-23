@@ -90,7 +90,7 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 					removed: removed.length
 				},
 				lastSync: Date.now(),
-				sources: sources.map((s) => s.split('/').pop()),
+				sources,
 				totalDomains: allDomains.size,
 				version: `v${new Date().toISOString().substring(0, 10)}`
 			})

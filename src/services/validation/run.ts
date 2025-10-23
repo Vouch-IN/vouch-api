@@ -31,14 +31,12 @@ export async function runValidations(
 	const [localPart, domainPartRaw] = email.split('@')
 	const domainPart = domainPartRaw || ''
 
+	// TODO: Return early
 	// Syntax validation (synchronous - run immediately)
 	const syntaxStart = performance.now()
 	const syntaxValid = validateEmailSyntax(email)
 	results.checks.syntax = { latency: performance.now() - syntaxStart, pass: syntaxValid }
 	if (!syntaxValid) results.signals.push('invalid_syntax')
-
-	// Prepare all async validation promises in parallel
-	const validationPromises: Promise<void>[] = []
 
 	// Alias detection (synchronous but grouped for consistency)
 	if (enabledValidations.alias) {
@@ -55,6 +53,9 @@ export async function runValidations(
 		results.checks.roleEmail = { latency: performance.now() - roleStart, pass: !isRoleEmail }
 		if (isRoleEmail) results.signals.push('role_email')
 	}
+
+	// Prepare all async validation promises in parallel
+	const validationPromises: Promise<void>[] = []
 
 	// All async validations run in parallel
 	if (enabledValidations.disposable) {

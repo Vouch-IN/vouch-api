@@ -1,17 +1,17 @@
 import { enqueueLogs } from '../../kv'
-import { type Recommendation, type RiskThresholds, type ValidationLog, type ValidationResults } from '../../types'
+import { type Recommendation, type ValidationLog, type ValidationResults } from '../../types'
 import { encrypt, sha256Hex } from '../../utils'
 
 export async function recordValidationLog(
 	projectId: string,
 	email: string,
 	validationResults: ValidationResults,
-	thresholds: RiskThresholds,
 	fingerprintHash: null | string,
 	ip: null | string,
 	riskScore: number,
 	recommendation: Recommendation,
 	totalLatency: number,
+	isValid: boolean,
 	env: Env
 ): Promise<void> {
 	// Hash email for privacy
@@ -19,8 +19,6 @@ export async function recordValidationLog(
 
 	// Encrypt email for storage (using project-specific key)
 	const emailEncrypted = await encrypt(email, projectId, env)
-
-	const isValid = riskScore < thresholds.flag && !validationResults.signals.includes('invalid_syntax')
 
 	const log: ValidationLog = {
 		checks: validationResults.checks,
