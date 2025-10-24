@@ -1,6 +1,11 @@
 import type { ValidationResults } from '../../types'
 
-export function applyOverrides(validationResults: ValidationResults, emailInput: string, whitelist: string[], blacklist: string[]) {
+export function applyOverrides(
+	validationResults: ValidationResults,
+	emailInput: string,
+	whitelist: string[],
+	blacklist: string[]
+) {
 	const email = emailInput.trim().toLowerCase()
 
 	// If email matches whitelist, override to always valid and allow

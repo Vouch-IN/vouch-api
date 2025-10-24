@@ -39,7 +39,11 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
 	}
 }
 
-async function handleApiKeyChange(payload: ApiKeyPayload, type: 'DELETE' | 'INSERT' | 'UPDATE', env: Env): Promise<void> {
+async function handleApiKeyChange(
+	payload: ApiKeyPayload,
+	type: 'DELETE' | 'INSERT' | 'UPDATE',
+	env: Env
+): Promise<void> {
 	const apiKey = type === 'DELETE' ? payload.old : payload.new
 
 	const cacheKey = `apikey:${apiKey.key_hash}`
@@ -53,7 +57,11 @@ async function handleApiKeyChange(payload: ApiKeyPayload, type: 'DELETE' | 'INSE
 	}
 }
 
-async function handleProjectChange(payload: ProjectPayload, type: 'DELETE' | 'INSERT' | 'UPDATE', env: Env): Promise<void> {
+async function handleProjectChange(
+	payload: ProjectPayload,
+	type: 'DELETE' | 'INSERT' | 'UPDATE',
+	env: Env
+): Promise<void> {
 	const project = type === 'DELETE' ? payload.old : payload.new
 
 	const cacheKey = `project:${project.id}`
@@ -64,7 +72,11 @@ async function handleProjectChange(payload: ProjectPayload, type: 'DELETE' | 'IN
 	} else {
 		// Fetch full project data with subscriptions
 		const client = createClient(env)
-		const { data, error } = await client.from('projects').select('*, subscriptions(*)').eq('id', project.id).single()
+		const { data, error } = await client
+			.from('projects')
+			.select('*, subscriptions(*)')
+			.eq('id', project.id)
+			.single()
 
 		if (error ?? !data) {
 			console.error('Failed to fetch project:', error)
@@ -85,7 +97,8 @@ async function handleProjectChange(payload: ProjectPayload, type: 'DELETE' | 'IN
 			},
 			subscription: subscription
 				? {
-						billingCycle: (subscription.billing_cycle ?? 'custom') as SubscriptionMetadata['billingCycle'],
+						billingCycle: (subscription.billing_cycle ??
+							'custom') as SubscriptionMetadata['billingCycle'],
 						currentPeriodEnd: subscription.current_period_end,
 						currentPeriodStart: subscription.current_period_start,
 						status: subscription.status

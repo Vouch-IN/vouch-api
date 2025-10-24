@@ -1,4 +1,7 @@
-import { createClient as createSupClient, type SupabaseClient as SupClient } from '@supabase/supabase-js'
+import {
+	createClient as createSupClient,
+	type SupabaseClient as SupClient
+} from '@supabase/supabase-js'
 
 import type { Database } from '../types'
 

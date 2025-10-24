@@ -17,7 +17,10 @@ type FingerprintRequestInput = {
 	projectId: string
 }
 
-export async function checkFingerprintAndRecordSignup({ email, fingerprintHash, ip, projectId }: FingerprintRequestInput, env: Env) {
+export async function checkFingerprintAndRecordSignup(
+	{ email, fingerprintHash, ip, projectId }: FingerprintRequestInput,
+	env: Env
+) {
 	const existing = await env.FINGERPRINTS.get<FingerprintData>(fingerprintHash, { type: 'json' })
 
 	const now = Date.now()
@@ -41,9 +44,11 @@ export async function checkFingerprintAndRecordSignup({ email, fingerprintHash, 
 			signupCount: 1
 		}
 
-		env.FINGERPRINTS.put(fingerprintHash, JSON.stringify(fingerprintData)).catch((error: unknown) => {
-			console.log('Error while updating fingerprint', error)
-		})
+		env.FINGERPRINTS.put(fingerprintHash, JSON.stringify(fingerprintData)).catch(
+			(error: unknown) => {
+				console.log('Error while updating fingerprint', error)
+			}
+		)
 
 		return deviceData
 	} else {
@@ -71,9 +76,11 @@ export async function checkFingerprintAndRecordSignup({ email, fingerprintHash, 
 		fingerprintData.signupCount++
 		fingerprintData.lastSeen = now
 
-		env.FINGERPRINTS.put(fingerprintHash, JSON.stringify(fingerprintData)).catch((error: unknown) => {
-			console.log('Error while updating fingerprint', error)
-		})
+		env.FINGERPRINTS.put(fingerprintHash, JSON.stringify(fingerprintData)).catch(
+			(error: unknown) => {
+				console.log('Error while updating fingerprint', error)
+			}
+		)
 
 		return deviceData
 	}

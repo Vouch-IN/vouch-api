@@ -1,5 +1,11 @@
 import { DEFAULT_RISK_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_VALIDATIONS } from '../constants'
-import { addCorsHeaders, authenticate, checkRateLimit, handleCors, handleError } from '../middleware'
+import {
+	addCorsHeaders,
+	authenticate,
+	checkRateLimit,
+	handleCors,
+	handleError
+} from '../middleware'
 import { recordValidationLog } from '../services/logging'
 import { recordMetric } from '../services/metrics'
 import { checkUsageQuota, incrementUsage, updateApiKeyLastUsed } from '../services/project'
@@ -27,7 +33,11 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		}
 
 		// 2. Check rate limit based on key type
-		const rate = await checkRateLimit(auth.projectId, auth.apiKey.type === 'client' ? 'client' : 'server', env)
+		const rate = await checkRateLimit(
+			auth.projectId,
+			auth.apiKey.type === 'client' ? 'client' : 'server',
+			env
+		)
 
 		const rateLimitHeaders = {
 			'X-RateLimit-Limit': rate.limit.toString(),
@@ -49,7 +59,11 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		const projectSettings = await getCachedData<ProjectSettings>(`project:${auth.projectId}`, env)
 
 		// 5. Check usage quota
-		const usageCheck = await checkUsageQuota(auth.projectId, projectSettings?.entitlements ?? {}, env)
+		const usageCheck = await checkUsageQuota(
+			auth.projectId,
+			projectSettings?.entitlements ?? {},
+			env
+		)
 		if (!usageCheck.allowed) {
 			return errorResponse(
 				'quota_exceeded',
@@ -60,7 +74,11 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		}
 
 		// 6. Determine which validations to run (merge project defaults with request overrides)
-		const enabledValidations = { ...DEFAULT_VALIDATIONS, ...projectSettings?.validations, ...body.validations }
+		const enabledValidations = {
+			...DEFAULT_VALIDATIONS,
+			...projectSettings?.validations,
+			...body.validations
+		}
 
 		// 7. Load thresholds for risk scoring (merge project defaults with settings)
 		const thresholds = { ...DEFAULT_THRESHOLDS, ...projectSettings?.thresholds }
@@ -81,10 +99,23 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		const asn = request.cf?.asn
 
 		// 13. Run all enabled validations and get results including checks, previous signups and risk signals
-		const validationResults = await runValidations(auth.projectId, email, enabledValidations, fingerprintHash, ip, asn, env)
+		const validationResults = await runValidations(
+			auth.projectId,
+			email,
+			enabledValidations,
+			fingerprintHash,
+			ip,
+			asn,
+			env
+		)
 
 		// 14. Check whitelist/blacklist overrides
-		const finalResults = applyOverrides(validationResults, email, projectSettings?.whitelist ?? [], projectSettings?.blacklist ?? [])
+		const finalResults = applyOverrides(
+			validationResults,
+			email,
+			projectSettings?.whitelist ?? [],
+			projectSettings?.blacklist ?? []
+		)
 
 		// 15. Calculate overall risk score based on signals and configured risk weights
 		const riskScore = calculateRiskScore(finalResults.signals, riskWeights)

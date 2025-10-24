@@ -28,10 +28,13 @@ export async function sha256Hex(dataStr: string): Promise<string> {
 }
 
 async function getEncryptionKey(projectId: string, env: Env): Promise<CryptoKey> {
-	const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.ENCRYPTION_KEY), { name: 'PBKDF2' }, false, [
-		'deriveBits',
-		'deriveKey'
-	])
+	const keyMaterial = await crypto.subtle.importKey(
+		'raw',
+		new TextEncoder().encode(env.ENCRYPTION_KEY),
+		{ name: 'PBKDF2' },
+		false,
+		['deriveBits', 'deriveKey']
+	)
 
 	return crypto.subtle.deriveKey(
 		{

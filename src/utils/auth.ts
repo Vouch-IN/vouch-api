@@ -30,7 +30,10 @@ export function isApiKeyFormatValid(apiKey: string): boolean {
 /**
  * Validate origin against allowed domains in apiKey
  */
-export function validateOrigin(request: Request, apiKey: ApiKey): { error?: string; origin?: null | string; valid: boolean } {
+export function validateOrigin(
+	request: Request,
+	apiKey: ApiKey
+): { error?: string; origin?: null | string; valid: boolean } {
 	const origin = request.headers.get('Origin') ?? request.headers.get('Referer')
 
 	if (apiKey.type === 'server') {

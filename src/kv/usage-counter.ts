@@ -41,7 +41,11 @@ export async function increment(request: UsageRequest, env: Env) {
 	return { count }
 }
 
-async function flushUsageCore({ month, projectId }: UsageRequest, count: number, env: Env): Promise<void> {
+async function flushUsageCore(
+	{ month, projectId }: UsageRequest,
+	count: number,
+	env: Env
+): Promise<void> {
 	const client = createClient(env)
 
 	const upsertPayload = {
@@ -51,7 +55,9 @@ async function flushUsageCore({ month, projectId }: UsageRequest, count: number,
 		updated_at: new Date().toISOString()
 	}
 
-	const { error } = await client.from('usage').upsert([upsertPayload], { onConflict: 'usage_project_id_month_key' })
+	const { error } = await client
+		.from('usage')
+		.upsert([upsertPayload], { onConflict: 'usage_project_id_month_key' })
 
 	if (error) console.error('Failed to sync usage to Supabase:', error.message)
 }

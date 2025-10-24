@@ -1,5 +1,11 @@
 import type { AuthResult } from '../types'
-import { fetchCachedApiKey, getApiKeyFromRequest, isApiKeyFormatValid, sha256Hex, validateOrigin } from '../utils'
+import {
+	fetchCachedApiKey,
+	getApiKeyFromRequest,
+	isApiKeyFormatValid,
+	sha256Hex,
+	validateOrigin
+} from '../utils'
 
 export async function authenticate(request: Request, env: Env): Promise<AuthResult> {
 	const apiKeyStr = getApiKeyFromRequest(request)

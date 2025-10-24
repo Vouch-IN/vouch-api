@@ -2,7 +2,11 @@ import { FREE_VALIDATIONS_LIMIT } from '../../constants'
 import { checkUsage, increment } from '../../kv'
 import { type Entitlements, type QuotaResult } from '../../types'
 
-export async function checkUsageQuota(projectId: string, entitlements: Entitlements, env: Env): Promise<QuotaResult> {
+export async function checkUsageQuota(
+	projectId: string,
+	entitlements: Entitlements,
+	env: Env
+): Promise<QuotaResult> {
 	const currentMonth = new Date().toISOString().substring(0, 7)
 
 	const { count, resetAt } = await checkUsage({ month: currentMonth, projectId }, env)

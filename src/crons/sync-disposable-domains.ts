@@ -17,11 +17,14 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 
 	try {
 		// Get current cached list from KV
-		const cachedDomainsArray = (await env.DISPOSABLE_DOMAINS.get<string[]>('domains:list', { type: 'json' })) ?? []
+		const cachedDomainsArray =
+			(await env.DISPOSABLE_DOMAINS.get<string[]>('domains:list', { type: 'json' })) ?? []
 		const cachedDomains = new Set<string>(cachedDomainsArray)
 
 		// Fetch from all sources in parallel
-		const responses = await Promise.allSettled(sources.map((url) => fetch(url).then((r) => r.text())))
+		const responses = await Promise.allSettled(
+			sources.map((url) => fetch(url).then((r) => r.text()))
+		)
 
 		// Parse and merge
 		const allDomains = new Set<string>()
@@ -101,7 +104,9 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 		if (error) {
 			console.error('Error logging sync result to Supabase:', error.message)
 		} else {
-			console.log(`Sync complete: +${added.length} added, -${removed.length} removed, ${allDomains.size} total`)
+			console.log(
+				`Sync complete: +${added.length} added, -${removed.length} removed, ${allDomains.size} total`
+			)
 		}
 	} catch (error) {
 		console.error('Unexpected sync error:', error)

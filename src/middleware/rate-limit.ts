@@ -1,7 +1,11 @@
 import { CLIENT_RATE_LIMIT, SERVER_RATE_LIMIT, WINDOW_MS } from '../constants'
 import type { RateLimitResult } from '../types'
 
-export async function checkRateLimit(projectId: string, keyType: 'client' | 'server', env: Env): Promise<RateLimitResult> {
+export async function checkRateLimit(
+	projectId: string,
+	keyType: 'client' | 'server',
+	env: Env
+): Promise<RateLimitResult> {
 	const now = Date.now()
 	const windowKey = `ratelimit:${projectId}:${Math.floor(now / WINDOW_MS)}`
 

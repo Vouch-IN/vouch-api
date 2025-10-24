@@ -1,4 +1,10 @@
-import { errorResponse, fetchCachedApiKey, getApiKeyFromRequest, sha256Hex, validateOrigin } from '../utils'
+import {
+	errorResponse,
+	fetchCachedApiKey,
+	getApiKeyFromRequest,
+	sha256Hex,
+	validateOrigin
+} from '../utils'
 
 /**
  * Add CORS headers to actual responses

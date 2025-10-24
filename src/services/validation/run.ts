@@ -64,7 +64,10 @@ export async function runValidations(
 				const disposableStart = performance.now()
 				try {
 					const isDisposable = await checkDisposableEmail(domainPart, env)
-					results.checks.disposable = { latency: performance.now() - disposableStart, pass: !isDisposable }
+					results.checks.disposable = {
+						latency: performance.now() - disposableStart,
+						pass: !isDisposable
+					}
 					if (isDisposable) results.signals.push('disposable_email')
 				} catch {
 					results.checks.disposable = {
@@ -84,13 +87,21 @@ export async function runValidations(
 				try {
 					const hasMX = await checkMXRecords(email, domainPart, env)
 					if (hasMX === null) {
-						results.checks.mx = { error: 'mx_unreachable', latency: performance.now() - mxStart, pass: true }
+						results.checks.mx = {
+							error: 'mx_unreachable',
+							latency: performance.now() - mxStart,
+							pass: true
+						}
 					} else {
 						results.checks.mx = { latency: performance.now() - mxStart, pass: hasMX }
 						if (!hasMX) results.signals.push('invalid_mx')
 					}
 				} catch {
-					results.checks.mx = { error: 'mx_check_failed', latency: performance.now() - mxStart, pass: true }
+					results.checks.mx = {
+						error: 'mx_check_failed',
+						latency: performance.now() - mxStart,
+						pass: true
+					}
 				}
 			})()
 		)
@@ -121,7 +132,10 @@ export async function runValidations(
 				const catchAllStart = performance.now()
 				try {
 					const isCatchAll = await detectCatchAll(email, env)
-					results.checks.catchall = { latency: performance.now() - catchAllStart, pass: !isCatchAll }
+					results.checks.catchall = {
+						latency: performance.now() - catchAllStart,
+						pass: !isCatchAll
+					}
 					if (isCatchAll) results.signals.push('catchall_domain')
 				} catch {
 					results.checks.catchall = {
@@ -163,7 +177,13 @@ export async function runValidations(
 			(async () => {
 				const deviceStart = performance.now()
 				try {
-					const deviceData = await checkDeviceFingerprint(fingerprintHash, email, projectId, ip, env)
+					const deviceData = await checkDeviceFingerprint(
+						fingerprintHash,
+						email,
+						projectId,
+						ip,
+						env
+					)
 					results.deviceData = deviceData
 					results.checks.device = {
 						latency: performance.now() - deviceStart,
