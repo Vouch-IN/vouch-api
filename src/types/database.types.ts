@@ -47,6 +47,13 @@ export type Database = {
 						foreignKeyName: 'api_keys_project_id_fkey'
 						columns: ['project_id']
 						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'api_keys_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
 						referencedRelation: 'projects'
 						referencedColumns: ['id']
 					}
@@ -59,7 +66,7 @@ export type Database = {
 					features: string[]
 					id: string
 					log_retention_days: number
-					organization_id: string
+					project_id: string | null
 					source: string
 					starts_at: string | null
 					updated_at: string
@@ -71,7 +78,7 @@ export type Database = {
 					features: string[]
 					id?: string
 					log_retention_days: number
-					organization_id: string
+					project_id?: string | null
 					source: string
 					starts_at?: string | null
 					updated_at?: string
@@ -83,7 +90,7 @@ export type Database = {
 					features?: string[]
 					id?: string
 					log_retention_days?: number
-					organization_id?: string
+					project_id?: string | null
 					source?: string
 					starts_at?: string | null
 					updated_at?: string
@@ -91,191 +98,123 @@ export type Database = {
 				}
 				Relationships: [
 					{
-						foreignKeyName: 'entitlements_organization_id_fkey'
-						columns: ['organization_id']
+						foreignKeyName: 'entitlements_project_id_fkey'
+						columns: ['project_id']
 						isOneToOne: false
-						referencedRelation: 'active_entitlement_summary'
-						referencedColumns: ['organization_id']
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
 					},
 					{
-						foreignKeyName: 'entitlements_organization_id_fkey'
-						columns: ['organization_id']
+						foreignKeyName: 'entitlements_project_id_fkey'
+						columns: ['project_id']
 						isOneToOne: false
-						referencedRelation: 'organizations'
+						referencedRelation: 'projects'
 						referencedColumns: ['id']
 					}
 				]
 			}
-			organization_members: {
+			project_members: {
 				Row: {
 					created_at: string
-					organization_id: string
+					project_id: string
 					role: string
 					updated_at: string
 					user_id: string
 				}
 				Insert: {
 					created_at?: string
-					organization_id: string
+					project_id: string
 					role: string
 					updated_at?: string
 					user_id: string
 				}
 				Update: {
 					created_at?: string
-					organization_id?: string
+					project_id?: string
 					role?: string
 					updated_at?: string
 					user_id?: string
 				}
 				Relationships: [
 					{
-						foreignKeyName: 'organization_members_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: false
-						referencedRelation: 'active_entitlement_summary'
-						referencedColumns: ['organization_id']
-					},
-					{
-						foreignKeyName: 'organization_members_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: false
-						referencedRelation: 'organizations'
-						referencedColumns: ['id']
-					},
-					{
 						foreignKeyName: 'organization_members_user_id_fkey'
 						columns: ['user_id']
 						isOneToOne: false
 						referencedRelation: 'users'
 						referencedColumns: ['id']
-					}
-				]
-			}
-			organizations: {
-				Row: {
-					billing_address: Json | null
-					billing_email: string | null
-					created_at: string
-					deleted_at: string | null
-					id: string
-					name: string
-					owner_id: string
-					updated_at: string
-				}
-				Insert: {
-					billing_address?: Json | null
-					billing_email?: string | null
-					created_at?: string
-					deleted_at?: string | null
-					id: string
-					name: string
-					owner_id: string
-					updated_at?: string
-				}
-				Update: {
-					billing_address?: Json | null
-					billing_email?: string | null
-					created_at?: string
-					deleted_at?: string | null
-					id?: string
-					name?: string
-					owner_id?: string
-					updated_at?: string
-				}
-				Relationships: [
+					},
 					{
-						foreignKeyName: 'organizations_owner_id_fkey'
-						columns: ['owner_id']
+						foreignKeyName: 'project_members_project_id_fkey'
+						columns: ['project_id']
 						isOneToOne: false
-						referencedRelation: 'users'
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'project_members_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
 						referencedColumns: ['id']
 					}
 				]
 			}
 			projects: {
 				Row: {
+					billing_email: string | null
 					created_at: string
 					deleted_at: string | null
 					id: string
 					name: string
-					organization_id: string
+					owner_id: string
 					settings: Json
 					updated_at: string
 				}
 				Insert: {
+					billing_email?: string | null
 					created_at?: string
 					deleted_at?: string | null
 					id: string
 					name: string
-					organization_id: string
+					owner_id: string
 					settings?: Json
 					updated_at?: string
 				}
 				Update: {
+					billing_email?: string | null
 					created_at?: string
 					deleted_at?: string | null
 					id?: string
 					name?: string
-					organization_id?: string
+					owner_id?: string
 					settings?: Json
 					updated_at?: string
 				}
-				Relationships: [
-					{
-						foreignKeyName: 'projects_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: false
-						referencedRelation: 'active_entitlement_summary'
-						referencedColumns: ['organization_id']
-					},
-					{
-						foreignKeyName: 'projects_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: false
-						referencedRelation: 'organizations'
-						referencedColumns: ['id']
-					}
-				]
+				Relationships: []
 			}
 			stripe_customers: {
 				Row: {
 					created_at: string
 					email: string | null
 					id: string
-					organization_id: string
 					updated_at: string
+					user_id: string | null
 				}
 				Insert: {
 					created_at?: string
 					email?: string | null
 					id: string
-					organization_id: string
 					updated_at?: string
+					user_id?: string | null
 				}
 				Update: {
 					created_at?: string
 					email?: string | null
 					id?: string
-					organization_id?: string
 					updated_at?: string
+					user_id?: string | null
 				}
-				Relationships: [
-					{
-						foreignKeyName: 'stripe_customers_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: true
-						referencedRelation: 'active_entitlement_summary'
-						referencedColumns: ['organization_id']
-					},
-					{
-						foreignKeyName: 'stripe_customers_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: true
-						referencedRelation: 'organizations'
-						referencedColumns: ['id']
-					}
-				]
+				Relationships: []
 			}
 			stripe_payment_methods: {
 				Row: {
@@ -337,6 +276,7 @@ export type Database = {
 					currency: string
 					deleted_at: string | null
 					id: string
+					lookup_key: string | null
 					metadata: Json | null
 					nickname: string | null
 					product_id: string
@@ -352,6 +292,7 @@ export type Database = {
 					currency: string
 					deleted_at?: string | null
 					id: string
+					lookup_key?: string | null
 					metadata?: Json | null
 					nickname?: string | null
 					product_id: string
@@ -367,6 +308,7 @@ export type Database = {
 					currency?: string
 					deleted_at?: string | null
 					id?: string
+					lookup_key?: string | null
 					metadata?: Json | null
 					nickname?: string | null
 					product_id?: string
@@ -394,6 +336,7 @@ export type Database = {
 					description: string | null
 					entitlements: Json | null
 					id: string
+					marketing_features: string[] | null
 					metadata: Json | null
 					name: string
 					updated_at: string
@@ -405,6 +348,7 @@ export type Database = {
 					description?: string | null
 					entitlements?: Json | null
 					id: string
+					marketing_features?: string[] | null
 					metadata?: Json | null
 					name: string
 					updated_at?: string
@@ -416,6 +360,7 @@ export type Database = {
 					description?: string | null
 					entitlements?: Json | null
 					id?: string
+					marketing_features?: string[] | null
 					metadata?: Json | null
 					name?: string
 					updated_at?: string
@@ -431,8 +376,8 @@ export type Database = {
 					current_period_start: string | null
 					entitlement_id: string | null
 					id: string
-					organization_id: string
 					price_id: string
+					project_id: string | null
 					status: string
 					stripe_customer_id: string
 					trial_end: string | null
@@ -447,8 +392,8 @@ export type Database = {
 					current_period_start?: string | null
 					entitlement_id?: string | null
 					id: string
-					organization_id: string
 					price_id: string
+					project_id?: string | null
 					status: string
 					stripe_customer_id: string
 					trial_end?: string | null
@@ -463,8 +408,8 @@ export type Database = {
 					current_period_start?: string | null
 					entitlement_id?: string | null
 					id?: string
-					organization_id?: string
 					price_id?: string
+					project_id?: string | null
 					status?: string
 					stripe_customer_id?: string
 					trial_end?: string | null
@@ -487,17 +432,17 @@ export type Database = {
 						referencedColumns: ['id']
 					},
 					{
-						foreignKeyName: 'stripe_subscriptions_organization_id_fkey'
-						columns: ['organization_id']
+						foreignKeyName: 'stripe_subscriptions_project_id_fkey'
+						columns: ['project_id']
 						isOneToOne: false
-						referencedRelation: 'active_entitlement_summary'
-						referencedColumns: ['organization_id']
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
 					},
 					{
-						foreignKeyName: 'stripe_subscriptions_organization_id_fkey'
-						columns: ['organization_id']
+						foreignKeyName: 'stripe_subscriptions_project_id_fkey'
+						columns: ['project_id']
 						isOneToOne: false
-						referencedRelation: 'organizations'
+						referencedRelation: 'projects'
 						referencedColumns: ['id']
 					},
 					{
@@ -546,22 +491,7 @@ export type Database = {
 					status?: string
 					type?: string
 				}
-				Relationships: [
-					{
-						foreignKeyName: 'stripe_transactions_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: false
-						referencedRelation: 'active_entitlement_summary'
-						referencedColumns: ['organization_id']
-					},
-					{
-						foreignKeyName: 'stripe_transactions_organization_id_fkey'
-						columns: ['organization_id']
-						isOneToOne: false
-						referencedRelation: 'organizations'
-						referencedColumns: ['id']
-					}
-				]
+				Relationships: []
 			}
 			usage: {
 				Row: {
@@ -589,6 +519,13 @@ export type Database = {
 					updated_at?: string
 				}
 				Relationships: [
+					{
+						foreignKeyName: 'usage_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
 					{
 						foreignKeyName: 'usage_project_id_fkey'
 						columns: ['project_id']
@@ -682,6 +619,13 @@ export type Database = {
 						foreignKeyName: 'validation_logs_project_id_fkey'
 						columns: ['project_id']
 						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'validation_logs_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
 						referencedRelation: 'projects'
 						referencedColumns: ['id']
 					}
@@ -689,7 +633,7 @@ export type Database = {
 			}
 		}
 		Views: {
-			active_entitlement_summary: {
+			active_entitlements: {
 				Row: {
 					features: string[] | null
 					first_entitlement_start: string | null
@@ -697,8 +641,9 @@ export type Database = {
 					last_refreshed: string | null
 					latest_entitlement_end: string | null
 					log_retention_days: number | null
-					organization_id: string | null
-					organization_name: string | null
+					owner_id: string | null
+					project_id: string | null
+					project_name: string | null
 					sources: string[] | null
 					subscription_info: Json | null
 					validations_limit: number | null
@@ -707,11 +652,11 @@ export type Database = {
 			}
 		}
 		Functions: {
-			is_org_admin: { Args: { org_id: string }; Returns: boolean }
-			is_org_member: { Args: { org_id: string }; Returns: boolean }
-			is_org_owner: { Args: { org_id: string }; Returns: boolean }
+			delete_project_cascade: {
+				Args: { project_id_param: string }
+				Returns: Json
+			}
 			is_superadmin: { Args: never; Returns: boolean }
-			user_organizations: { Args: never; Returns: string[] }
 		}
 		Enums: {
 			[_ in never]: never

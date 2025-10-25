@@ -1,7 +1,11 @@
 import { type ValidationToggles } from './validation'
 
 export type Entitlements = {
-	validationsLimit?: number
+	endsAt: null | string
+	features: string[]
+	logRetentionDays: number
+	startsAt: string
+	validationsLimit: number
 }
 
 export type ProjectSettings = {

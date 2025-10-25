@@ -1,7 +1,7 @@
 import { DEFAULT_RISK_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_VALIDATIONS } from '../constants'
 import { createClient } from '../lib/supabase'
 import { handleError } from '../middleware'
-import { type ProjectSettings, type SubscriptionMetadata, type Tables } from '../types'
+import { type ProjectSettings, type Tables } from '../types'
 import { errorResponse } from '../utils'
 
 type ApiKeyPayload = WebhookPayload<Tables<'api_keys'>>
@@ -74,9 +74,25 @@ async function handleProjectChange(
 		const client = createClient(env)
 		const { data, error } = await client
 			.from('projects')
-			.select('*, subscriptions(*)')
+			.select(
+				`
+    *,
+    subscription:stripe_subscriptions!inner(
+      status,
+      current_period_start,
+      current_period_end
+    ),
+    entitlement:entitlements!inner(
+      validations_limit,
+      log_retention_days,
+      features,
+      starts_at,
+      ends_at
+    )
+  `
+			)
 			.eq('id', project.id)
-			.single()
+			.maybeSingle()
 
 		if (error ?? !data) {
 			console.error('Failed to fetch project:', error)
@@ -84,12 +100,26 @@ async function handleProjectChange(
 		}
 
 		const settings = data.settings as null | ProjectSettings
-		const subscriptions = data.subscriptions
-		const subscription = subscriptions[0]
+		const subscription = data.subscription?.[0]
+		const entitlement = data.entitlement?.[0]
 
 		const projectSettings = {
 			blacklist: settings?.blacklist ?? [],
-			entitlements: settings?.entitlements ?? {},
+			entitlements: entitlement
+				? {
+						endsAt: entitlement.ends_at,
+						features: entitlement.features,
+						logRetentionDays: entitlement.log_retention_days,
+						startsAt: entitlement.starts_at,
+						validationsLimit: entitlement.validations_limit
+					}
+				: {
+						endsAt: null,
+						features: [],
+						logRetentionDays: 7,
+						startsAt: new Date().toISOString(),
+						validationsLimit: 1000 // Free tier default
+					},
 			projectId: data.id,
 			riskWeights: {
 				...DEFAULT_RISK_WEIGHTS,
@@ -97,8 +127,7 @@ async function handleProjectChange(
 			},
 			subscription: subscription
 				? {
-						billingCycle: (subscription.billing_cycle ??
-							'custom') as SubscriptionMetadata['billingCycle'],
+						billingCycle: 'monthly' as const, // Derive from subscription interval if needed
 						currentPeriodEnd: subscription.current_period_end,
 						currentPeriodStart: subscription.current_period_start,
 						status: subscription.status
