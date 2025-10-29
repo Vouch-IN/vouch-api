@@ -1,7 +1,6 @@
 import { type RiskThresholds, type ValidationToggles } from '../types'
 
 export const DEFAULT_THRESHOLDS: RiskThresholds = {
-	allow: 30,
 	block: 100,
 	flag: 60
 }

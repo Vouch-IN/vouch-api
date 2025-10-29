@@ -13,6 +13,50 @@ export async function checkUsage(request: UsageRequest, env: Env) {
 	return { count, resetAt }
 }
 
+export async function flushAllUsage(env: Env) {
+	const client = createClient(env)
+	const allKeys = await env.USAGE_COUNTER.list()
+
+	let flushed = 0
+	const errors: string[] = []
+
+	for (const { name } of allKeys.keys) {
+		try {
+			const countStr = await env.USAGE_COUNTER.get<string>(name)
+			if (!countStr) continue
+
+			const [projectId, month] = name.split(':')
+			const count = parseInt(countStr, 10)
+
+			const upsertPayload = {
+				count,
+				month,
+				project_id: projectId,
+				updated_at: new Date().toISOString()
+			}
+
+			const { error } = await client
+				.from('usage')
+				.upsert([upsertPayload], { onConflict: 'project_id,month' })
+
+			if (error) {
+				errors.push(`${name}: ${error.message}`)
+			} else {
+				flushed++
+			}
+		} catch (err) {
+			errors.push(`${name}: ${String(err)}`)
+		}
+	}
+
+	console.log(`Flushed ${flushed} usage records`)
+	if (errors.length > 0) {
+		console.error('Usage flush errors:', errors)
+	}
+
+	return { errors, flushed }
+}
+
 export async function flushUsage(request: UsageRequest, env: Env) {
 	const count = await getUsageCount(request, env)
 	await flushUsageCore(request, count, env)
@@ -35,7 +79,6 @@ export async function increment(request: UsageRequest, env: Env) {
 	// Fire-and-forget batch flush to Supabase if threshold met
 	if (count - lastFlushedCount >= 10 || count === 1) {
 		void flushUsageCore(request, count, env)
-		lastFlushedCount = count
 	}
 
 	return { count }
@@ -53,13 +96,15 @@ async function flushUsageCore(
 		month,
 		project_id: projectId,
 		updated_at: new Date().toISOString()
+		// limit_exceeded_at: new Date().toISOString()
 	}
 
 	const { error } = await client
 		.from('usage')
-		.upsert([upsertPayload], { onConflict: 'usage_project_id_month_key' })
+		.upsert([upsertPayload], { onConflict: 'project_id,month' })
 
 	if (error) console.error('Failed to sync usage to Supabase:', error.message)
+	else lastFlushedCount = count
 }
 
 async function getUsageCount({ month, projectId }: UsageRequest, env: Env) {

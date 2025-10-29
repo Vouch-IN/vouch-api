@@ -1,5 +1,13 @@
 import { flushAllLogQueues, syncDisposableDomains } from './crons'
 import { handleHealth, handleValidation, handleWebhook } from './handlers'
+import {
+	handleDebugFlushLogs,
+	handleDebugFlushUsages,
+	handleDebugKvDelete,
+	handleDebugKvGet,
+	handleDebugKvList,
+	handleDebugSyncDomains
+} from './handlers/debug'
 import { handleError } from './middleware'
 
 export default {
@@ -20,6 +28,27 @@ export default {
 			// Main validation endpoint
 			if (url.pathname === '/validate') {
 				return await handleValidation(request, env)
+			}
+
+			if (env.ENVIRONMENT === 'development') {
+				if (url.pathname === '/debug/kv/list') {
+					return await handleDebugKvList(request, env)
+				}
+				if (url.pathname === '/debug/kv/get') {
+					return await handleDebugKvGet(request, env)
+				}
+				if (url.pathname === '/debug/kv/delete') {
+					return await handleDebugKvDelete(request, env)
+				}
+				if (url.pathname === '/debug/sync-domains') {
+					return await handleDebugSyncDomains(request, env)
+				}
+				if (url.pathname === '/debug/flush-logs') {
+					return await handleDebugFlushLogs(request, env)
+				}
+				if (url.pathname === '/debug/flush-usages') {
+					return await handleDebugFlushUsages(request, env)
+				}
 			}
 
 			return new Response('Not found', { status: 404 })

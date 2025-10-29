@@ -5,6 +5,7 @@ export type Entitlements = {
 	features: string[]
 	logRetentionDays: number
 	startsAt: string
+	teamLimit: number
 	validationsLimit: number
 }
 
@@ -31,7 +32,6 @@ export type QuotaResult = {
 export type Recommendation = 'allow' | 'block' | 'flag'
 
 export type RiskThresholds = {
-	allow: number
 	block: number
 	flag: number
 }

@@ -5,5 +5,5 @@ export function recordMetric(
 	data: Record<string, unknown>
 ) {
 	// TODO: Send to prometheus
-	console.log('recordMetric', env, eventName, latency, eventName, data)
+	// console.log('recordMetric', env, eventName, latency, eventName, data)
 }

@@ -38,7 +38,6 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			auth.apiKey.type === 'client' ? 'client' : 'server',
 			env
 		)
-
 		const rateLimitHeaders = {
 			'X-RateLimit-Limit': rate.limit.toString(),
 			'X-RateLimit-Remaining': rate.remaining.toString(),
@@ -51,6 +50,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 
 		// 3. Parse request body
 		const body: undefined | ValidationRequest = await request.json()
+
 		if (!body?.email || typeof body.email !== 'string') {
 			return errorResponse('invalid_request', 'Missing or invalid email', 422)
 		}

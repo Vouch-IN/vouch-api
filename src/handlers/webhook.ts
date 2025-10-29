@@ -83,6 +83,7 @@ async function handleProjectChange(
       current_period_end
     ),
     entitlement:entitlements!inner(
+      team_limit,
       validations_limit,
       log_retention_days,
       features,
@@ -111,6 +112,7 @@ async function handleProjectChange(
 						features: entitlement.features,
 						logRetentionDays: entitlement.log_retention_days,
 						startsAt: entitlement.starts_at,
+						teamLimit: entitlement.team_limit,
 						validationsLimit: entitlement.validations_limit
 					}
 				: {
@@ -118,7 +120,8 @@ async function handleProjectChange(
 						features: [],
 						logRetentionDays: 7,
 						startsAt: new Date().toISOString(),
-						validationsLimit: 1000 // Free tier default
+						teamLimit: 1,
+						validationsLimit: 1000
 					},
 			projectId: data.id,
 			riskWeights: {
