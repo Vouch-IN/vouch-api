@@ -67,6 +67,9 @@ async function handleProjectChange(
 
 	const cacheKey = `project:${project.id}`
 
+	console.log('Project Request: ')
+	console.log(project)
+
 	if (type === 'DELETE') {
 		// Remove from cache if deleted
 		await env.PROJECT_SETTINGS.delete(cacheKey)
@@ -95,6 +98,12 @@ async function handleProjectChange(
 			)
 			.eq('id', project.id)
 			.maybeSingle()
+
+		console.log('Project Response:')
+		console.log(data)
+
+		console.log('Project Error:')
+		console.log(error)
 
 		if (error ?? !data) {
 			console.error('Failed to fetch project:', error)
