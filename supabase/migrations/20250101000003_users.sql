@@ -90,7 +90,35 @@ CREATE POLICY "Users can view their own profile"
   TO authenticated
   USING (id = auth.uid());
 
+CREATE POLICY "Users can update their own profile"
+  ON users FOR UPDATE
+  TO authenticated
+  USING (id = auth.uid())
+  WITH CHECK (
+    id = auth.uid()
+    AND is_superadmin = (SELECT is_superadmin FROM users WHERE id = auth.uid())
+  );
+
+CREATE POLICY "Superadmins can view all users"
+  ON users FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can update users"
+  ON users FOR UPDATE
+  TO authenticated
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
+
+CREATE POLICY "Service role full access to users"
+  ON users FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- Grants
-GRANT ALL ON TABLE users TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE users TO anon, authenticated, service_role;
+GRANT UPDATE ON TABLE users TO authenticated, service_role;
+GRANT INSERT, DELETE ON TABLE users TO service_role;
 GRANT EXECUTE ON FUNCTION public.sync_auth_user_to_public() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.is_superadmin() TO anon, authenticated, service_role;

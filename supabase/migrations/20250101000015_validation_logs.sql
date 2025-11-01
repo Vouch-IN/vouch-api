@@ -45,5 +45,12 @@ CREATE POLICY "Superadmins full access logs"
   USING (is_superadmin())
   WITH CHECK (is_superadmin());
 
+CREATE POLICY "Service role full access to logs"
+  ON validation_logs FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- Grants
-GRANT ALL ON TABLE validation_logs TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE validation_logs TO authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE validation_logs TO service_role;

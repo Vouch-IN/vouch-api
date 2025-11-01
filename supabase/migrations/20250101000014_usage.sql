@@ -41,5 +41,12 @@ CREATE POLICY "Superadmins full access usage"
   USING (is_superadmin())
   WITH CHECK (is_superadmin());
 
+CREATE POLICY "Service role full access to usage"
+  ON usage FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- Grants
-GRANT ALL ON TABLE usage TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE usage TO authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE usage TO service_role;

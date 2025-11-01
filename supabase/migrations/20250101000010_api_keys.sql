@@ -91,12 +91,40 @@ CREATE POLICY "Members can view api keys"
   TO authenticated
   USING (has_project_access(project_id));
 
-CREATE POLICY "Owners can manage api keys"
+CREATE POLICY "Owners and admins can create api keys"
+  ON api_keys FOR INSERT
+  TO authenticated
+  WITH CHECK (can_manage_project(project_id));
+
+CREATE POLICY "Owners and admins can update api keys"
+  ON api_keys FOR UPDATE
+  TO authenticated
+  USING (can_manage_project(project_id))
+  WITH CHECK (can_manage_project(project_id));
+
+CREATE POLICY "Owners and admins can delete api keys"
+  ON api_keys FOR DELETE
+  TO authenticated
+  USING (can_manage_project(project_id));
+
+CREATE POLICY "Superadmins can view all api keys"
+  ON api_keys FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can manage all api keys"
   ON api_keys FOR ALL
   TO authenticated
-  USING (is_project_owner(project_id))
-  WITH CHECK (is_project_owner(project_id));
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
+
+CREATE POLICY "Service role all api keys"
+  ON api_keys FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
 
 -- Grants
-GRANT ALL ON TABLE api_keys TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE api_keys TO anon, authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE api_keys TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.generate_initial_api_keys() TO service_role;

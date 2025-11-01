@@ -28,16 +28,37 @@ CREATE TRIGGER set_updated_at_project_members
 -- RLS
 ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Members can view team"
+CREATE POLICY "Members can view all team members"
   ON project_members FOR SELECT
   TO authenticated
-  USING (user_id = auth.uid() OR is_project_owner(project_id));
+  USING (has_project_access(project_id));
 
-CREATE POLICY "Owners can manage team"
+CREATE POLICY "Owners and admins can manage team"
+  ON project_members FOR INSERT
+  TO authenticated
+  WITH CHECK (can_manage_project(project_id));
+
+CREATE POLICY "Owners and admins can update team roles"
+  ON project_members FOR UPDATE
+  TO authenticated
+  USING (can_manage_project(project_id))
+  WITH CHECK (can_manage_project(project_id));
+
+CREATE POLICY "Owners and admins can remove team members"
+  ON project_members FOR DELETE
+  TO authenticated
+  USING (can_manage_project(project_id));
+
+CREATE POLICY "Superadmins can view all members"
+  ON project_members FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can manage all members"
   ON project_members FOR ALL
   TO authenticated
-  USING (is_project_owner(project_id))
-  WITH CHECK (is_project_owner(project_id));
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
 
 CREATE POLICY "Service role all members"
   ON project_members FOR ALL
@@ -46,4 +67,5 @@ CREATE POLICY "Service role all members"
   WITH CHECK (true);
 
 -- Grants
-GRANT ALL ON TABLE project_members TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE project_members TO anon, authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE project_members TO authenticated, service_role;

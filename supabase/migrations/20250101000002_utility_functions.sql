@@ -62,6 +62,7 @@ COMMENT ON FUNCTION public.generate_api_key(TEXT, TEXT) IS 'Generate API key in 
 CREATE OR REPLACE FUNCTION public.delete_old_logs()
 RETURNS VOID
 LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
   DELETE FROM validation_logs
@@ -71,8 +72,23 @@ $$;
 
 COMMENT ON FUNCTION public.delete_old_logs() IS 'Delete validation logs older than 90 days';
 
+-- Check if current session is service role
+CREATE OR REPLACE FUNCTION public.is_service_role()
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+BEGIN
+  RETURN (auth.jwt() ->> 'role') = 'service_role';
+END;
+$$;
+
+COMMENT ON FUNCTION public.is_service_role() IS 'Check if current session is using service_role';
+
 -- Grant permissions
 GRANT EXECUTE ON FUNCTION public.set_updated_at() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.hash_api_key(TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.generate_api_key(TEXT, TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.delete_old_logs() TO service_role;
+GRANT EXECUTE ON FUNCTION public.is_service_role() TO anon, authenticated, service_role;

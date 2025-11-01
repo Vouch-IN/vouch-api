@@ -17,12 +17,6 @@ COMMENT ON TABLE stripe_customers IS 'Stripe customer records. ID from Stripe (c
 -- Indexes
 CREATE UNIQUE INDEX idx_stripe_customers_user ON stripe_customers(user_id);
 
--- Foreign key for projects
-ALTER TABLE projects
-  ADD CONSTRAINT projects_stripe_customer_id_fkey
-  FOREIGN KEY (stripe_customer_id)
-  REFERENCES stripe_customers(id);
-
 -- Triggers
 CREATE TRIGGER set_updated_at_stripe_customers
   BEFORE UPDATE ON stripe_customers
@@ -37,6 +31,17 @@ CREATE POLICY "Users can view their own customer"
   TO authenticated
   USING (user_id = auth.uid());
 
+CREATE POLICY "Superadmins can view all customers"
+  ON stripe_customers FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can manage all customers"
+  ON stripe_customers FOR ALL
+  TO authenticated
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
+
 CREATE POLICY "Service role full access to customers"
   ON stripe_customers FOR ALL
   TO service_role
@@ -44,4 +49,5 @@ CREATE POLICY "Service role full access to customers"
   WITH CHECK (true);
 
 -- Grants
-GRANT ALL ON TABLE stripe_customers TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE stripe_customers TO authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE stripe_customers TO service_role;

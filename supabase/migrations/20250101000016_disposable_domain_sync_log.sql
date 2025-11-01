@@ -22,5 +22,20 @@ COMMENT ON TABLE disposable_domain_sync_log IS 'Log of disposable domain list sy
 -- Indexes
 CREATE INDEX idx_sync_log_synced_at ON disposable_domain_sync_log(synced_at DESC);
 
+-- RLS
+ALTER TABLE disposable_domain_sync_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Superadmins can view sync logs"
+  ON disposable_domain_sync_log FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Service role full access to sync logs"
+  ON disposable_domain_sync_log FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
 -- Grants
-GRANT ALL ON TABLE disposable_domain_sync_log TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE disposable_domain_sync_log TO authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE disposable_domain_sync_log TO service_role;

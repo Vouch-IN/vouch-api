@@ -17,7 +17,7 @@ CREATE TABLE public.entitlements (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-COMMENT ON TABLE entitlements IS 'Project entitlements. Can exist independently of Stripe subscriptions.';
+COMMENT ON TABLE entitlements IS 'Project entitlements from Stripe subscriptions, manual grants, promos, or free tier.';
 COMMENT ON COLUMN entitlements.features IS 'Array: [''pro_dashboard'', ''custom_risk_weights'', ''advanced_analytics'', ''priority_support'']';
 
 -- Indexes
@@ -38,6 +38,17 @@ CREATE POLICY "Members can view entitlements"
   TO authenticated
   USING (has_project_access(project_id));
 
+CREATE POLICY "Superadmins can view all entitlements"
+  ON entitlements FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can manage all entitlements"
+  ON entitlements FOR ALL
+  TO authenticated
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
+
 CREATE POLICY "Service role all entitlements"
   ON entitlements FOR ALL
   TO service_role
@@ -45,4 +56,5 @@ CREATE POLICY "Service role all entitlements"
   WITH CHECK (true);
 
 -- Grants
-GRANT ALL ON TABLE entitlements TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE entitlements TO authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE entitlements TO service_role;

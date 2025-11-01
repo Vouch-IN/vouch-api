@@ -9,7 +9,6 @@ CREATE TABLE public.projects (
   slug TEXT NOT NULL,
   owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  billing_email TEXT,
   stripe_customer_id TEXT,
   settings JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -62,6 +61,39 @@ $$;
 
 COMMENT ON FUNCTION public.is_project_member(UUID) IS 'Check if current user is a member of the project';
 
+CREATE OR REPLACE FUNCTION public.is_project_admin(project_id_param UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM project_members pm
+    JOIN projects p ON p.id = pm.project_id
+    WHERE pm.project_id = project_id_param
+    AND pm.user_id = auth.uid()
+    AND pm.role = 'admin'
+    AND p.deleted_at IS NULL
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public.is_project_admin(UUID) IS 'Check if current user is an admin of the project';
+
+CREATE OR REPLACE FUNCTION public.can_manage_project(project_id_param UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+BEGIN
+  RETURN is_project_owner(project_id_param) OR is_project_admin(project_id_param);
+END;
+$$;
+
+COMMENT ON FUNCTION public.can_manage_project(UUID) IS 'Check if current user can manage the project (owner or admin)';
+
 CREATE OR REPLACE FUNCTION public.has_project_access(project_id_param UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -95,36 +127,25 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-  subscription_ids TEXT[];
   result JSONB;
 BEGIN
-  SELECT ARRAY_AGG(id)
-  INTO subscription_ids
-  FROM stripe_subscriptions
-  WHERE project_id = project_id_param
-  AND status IN ('active', 'trialing', 'past_due')
-  AND deleted_at IS NULL;
-
+  -- Hard delete related entities
   DELETE FROM api_keys WHERE project_id = project_id_param;
-  UPDATE stripe_subscriptions
-  SET deleted_at = NOW(), updated_at = NOW()
-  WHERE project_id = project_id_param AND deleted_at IS NULL;
   DELETE FROM entitlements WHERE project_id = project_id_param;
   DELETE FROM project_members WHERE project_id = project_id_param;
+
+  -- Soft delete the project
   UPDATE projects
   SET deleted_at = NOW(), updated_at = NOW()
   WHERE id = project_id_param AND deleted_at IS NULL;
 
-  result := jsonb_build_object(
-    'success', TRUE,
-    'subscription_ids', COALESCE(subscription_ids, ARRAY[]::TEXT[])
-  );
+  result := jsonb_build_object('success', TRUE);
 
   RETURN result;
 END;
 $$;
 
-COMMENT ON FUNCTION public.delete_project_cascade(UUID) IS 'Soft delete project and cascade to related entities, returns subscription IDs to cancel';
+COMMENT ON FUNCTION public.delete_project_cascade(UUID) IS 'Soft delete project and cascade to related entities';
 
 -- Triggers
 CREATE TRIGGER set_updated_at_projects
@@ -150,16 +171,27 @@ CREATE POLICY "Users can view their projects"
   TO authenticated
   USING (deleted_at IS NULL AND (owner_id = auth.uid() OR is_project_member(id)));
 
-CREATE POLICY "Owners can update projects"
+CREATE POLICY "Owners and admins can update projects"
   ON projects FOR UPDATE
   TO authenticated
-  USING (deleted_at IS NULL AND owner_id = auth.uid())
-  WITH CHECK (deleted_at IS NULL AND owner_id = auth.uid());
+  USING (deleted_at IS NULL AND can_manage_project(id))
+  WITH CHECK (deleted_at IS NULL AND can_manage_project(id));
 
 CREATE POLICY "Owners can delete projects"
   ON projects FOR DELETE
   TO authenticated
   USING (deleted_at IS NULL AND owner_id = auth.uid());
+
+CREATE POLICY "Superadmins can view all projects"
+  ON projects FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can manage all projects"
+  ON projects FOR ALL
+  TO authenticated
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
 
 CREATE POLICY "Service role all projects"
   ON projects FOR ALL
@@ -168,8 +200,11 @@ CREATE POLICY "Service role all projects"
   WITH CHECK (true);
 
 -- Grants
-GRANT ALL ON TABLE projects TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE projects TO anon, authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE projects TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.is_project_owner(UUID) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.is_project_member(UUID) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_project_admin(UUID) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.can_manage_project(UUID) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.has_project_access(UUID) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.delete_project_cascade(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.delete_project_cascade(UUID) TO authenticated, service_role;

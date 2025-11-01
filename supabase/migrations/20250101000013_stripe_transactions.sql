@@ -33,6 +33,17 @@ CREATE POLICY "Project members can view transactions"
   TO authenticated
   USING (has_project_access(project_id));
 
+CREATE POLICY "Superadmins can view all transactions"
+  ON stripe_transactions FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can manage all transactions"
+  ON stripe_transactions FOR ALL
+  TO authenticated
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
+
 CREATE POLICY "Service role full access to transactions"
   ON stripe_transactions FOR ALL
   TO service_role
@@ -40,4 +51,5 @@ CREATE POLICY "Service role full access to transactions"
   WITH CHECK (true);
 
 -- Grants
-GRANT ALL ON TABLE stripe_transactions TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE stripe_transactions TO authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE stripe_transactions TO service_role;

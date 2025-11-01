@@ -34,7 +34,7 @@ CREATE TRIGGER "Sync Subscriptions to Worker"
   EXECUTE FUNCTION supabase_functions.http_request(
     'https://api.vouch.expert/webhook',
     'POST',
-    '{"Content-type":"application/json","x-webhook-token":"327d6f2a98a0b297eefad0fe40c21fd30e15447487a77fc1f63466bd5a90ef12"}',
+    '{"Content-Type":"application/json","x-webhook-token":"327d6f2a98a0b297eefad0fe40c21fd30e15447487a77fc1f63466bd5a90ef12"}',
     '{}',
     '5000'
   );

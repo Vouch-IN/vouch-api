@@ -37,16 +37,21 @@ SELECT
   (
     SELECT json_build_object(
       'id', s.id,
+      'product_name', s.product_name,
+      'amount', s.amount,
+      'currency', s.currency,
+      'interval', s.interval,
       'status', s.status,
-      'renewal_date', s.current_period_end,
-      'canceling', s.cancel_at_period_end,
-      'trial_ends', s.trial_end
+      'current_period_start', s.current_period_start,
+      'current_period_end', s.current_period_end,
+      'cancel_at_period_end', s.cancel_at_period_end,
+      'canceled_at', s.canceled_at,
+      'trial_end', s.trial_end
     )
     FROM stripe_subscriptions s
     WHERE s.project_id = p.id
-    AND s.status IN ('active', 'trialing')
     AND s.deleted_at IS NULL
-    ORDER BY s.current_period_end DESC
+    ORDER BY s.created_at DESC
     LIMIT 1
   ) AS subscription_info,
   now() AS last_refreshed
@@ -57,7 +62,7 @@ LEFT JOIN entitlements e
 WHERE p.deleted_at IS NULL
 GROUP BY p.id, p.slug, p.name, p.owner_id;
 
-COMMENT ON MATERIALIZED VIEW active_entitlements IS 'Aggregated active entitlements per project with subscription info';
+COMMENT ON MATERIALIZED VIEW active_entitlements IS 'Aggregated active entitlements per project with subscription info for UI display';
 
 -- Indexes
 CREATE UNIQUE INDEX idx_active_entitlements_project ON active_entitlements(project_id);
@@ -93,6 +98,47 @@ CREATE TRIGGER trg_refresh_on_subscription_change
   FOR EACH ROW
   EXECUTE FUNCTION refresh_entitlement_summary();
 
+-- RLS Policies for Materialized View
+-- Note: RLS on materialized views works by creating a regular view with RLS on top
+-- Alternatively, use functions with security definer or filter in application layer
+
+-- Create a secure function to query entitlements with RLS
+CREATE OR REPLACE FUNCTION public.get_project_entitlements(p_project_id UUID)
+RETURNS TABLE (
+  project_id UUID,
+  project_slug TEXT,
+  project_name TEXT,
+  owner_id UUID,
+  validations_limit INTEGER,
+  log_retention_days INTEGER,
+  features TEXT[],
+  first_entitlement_start TIMESTAMPTZ,
+  latest_entitlement_end TIMESTAMPTZ,
+  is_active BOOLEAN,
+  sources TEXT[],
+  subscription_info JSON,
+  last_refreshed TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+AS $$
+BEGIN
+  -- Only allow access if user has project access or is superadmin
+  IF NOT (has_project_access(p_project_id) OR is_superadmin()) THEN
+    RAISE EXCEPTION 'Access denied to project entitlements';
+  END IF;
+
+  RETURN QUERY
+  SELECT ae.*
+  FROM active_entitlements ae
+  WHERE ae.project_id = p_project_id;
+END;
+$$;
+
+COMMENT ON FUNCTION public.get_project_entitlements(UUID) IS 'Securely get project entitlements with RLS enforcement';
+
 -- Grants
-GRANT SELECT ON active_entitlements TO anon, authenticated, service_role;
+GRANT SELECT ON active_entitlements TO service_role;
 GRANT EXECUTE ON FUNCTION public.refresh_entitlement_summary() TO service_role;
+GRANT EXECUTE ON FUNCTION public.get_project_entitlements(UUID) TO authenticated, service_role;

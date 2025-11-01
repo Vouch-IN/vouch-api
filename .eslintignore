@@ -1,0 +1,15 @@
+# Supabase Functions
+supabase/functions/**/*
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Generated files
+*.gen.ts
+*.generated.ts

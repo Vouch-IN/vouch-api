@@ -19,7 +19,7 @@ CREATE TABLE public.stripe_payment_methods (
   detached_at TIMESTAMPTZ
 );
 
-COMMENT ON TABLE stripe_payment_methods IS 'Payment methods. ID from Stripe (pm_...). Viewable by project owners only.';
+COMMENT ON TABLE stripe_payment_methods IS 'Payment methods. ID from Stripe (pm_...). Viewable by customer owner only.';
 
 -- Indexes
 CREATE INDEX idx_payment_methods_customer ON stripe_payment_methods(stripe_customer_id) WHERE detached_at IS NULL;
@@ -34,7 +34,7 @@ CREATE TRIGGER set_updated_at_stripe_payment_methods
 -- RLS
 ALTER TABLE stripe_payment_methods ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Project members can view payment methods"
+CREATE POLICY "Users can view their own payment methods"
   ON stripe_payment_methods FOR SELECT
   TO authenticated
   USING (EXISTS (
@@ -43,6 +43,17 @@ CREATE POLICY "Project members can view payment methods"
     AND stripe_customers.user_id = auth.uid()
   ));
 
+CREATE POLICY "Superadmins can view all payment methods"
+  ON stripe_payment_methods FOR SELECT
+  TO authenticated
+  USING (is_superadmin());
+
+CREATE POLICY "Superadmins can manage all payment methods"
+  ON stripe_payment_methods FOR ALL
+  TO authenticated
+  USING (is_superadmin())
+  WITH CHECK (is_superadmin());
+
 CREATE POLICY "Service role full access to payment methods"
   ON stripe_payment_methods FOR ALL
   TO service_role
@@ -50,4 +61,5 @@ CREATE POLICY "Service role full access to payment methods"
   WITH CHECK (true);
 
 -- Grants
-GRANT ALL ON TABLE stripe_payment_methods TO anon, authenticated, service_role;
+GRANT SELECT ON TABLE stripe_payment_methods TO authenticated, service_role;
+GRANT INSERT, UPDATE, DELETE ON TABLE stripe_payment_methods TO service_role;
