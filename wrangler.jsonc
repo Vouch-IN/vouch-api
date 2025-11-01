@@ -28,7 +28,6 @@
 			],
 			"vars": {
 				"SUPABASE_URL": "https://mnxbnpmjdwpfrdmkzheq.supabase.co",
-				"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert",
 				"ENVIRONMENT": "production"
 			},
 			"kv_namespaces": [
@@ -68,7 +67,6 @@
 			"preview_urls": true,
 			"vars": {
 				"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
-				"PROMETHEUS_ENDPOINT": "https://prometheus-dev.vouch.expert",
 				"ENVIRONMENT": "development"
 			},
 			"kv_namespaces": [
