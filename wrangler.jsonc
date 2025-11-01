@@ -19,6 +19,7 @@
 		"production": {
 			"name": "vouch-api-production",
 			"workers_dev": false,
+			"preview_urls": false,
 			"routes": [
 				{
 					"pattern": "api.vouch.expert/*",
@@ -65,6 +66,7 @@
 		"development": {
 			"name": "vouch-api-development",
 			"workers_dev": true,
+			"preview_urls": true,
 			"vars": {
 				"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
 				"PROMETHEUS_ENDPOINT": "https://prometheus-dev.vouch.expert",
