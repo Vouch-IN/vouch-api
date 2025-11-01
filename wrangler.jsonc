@@ -22,8 +22,7 @@
 			"preview_urls": false,
 			"routes": [
 				{
-					"pattern": "api.vouch.expert/*",
-					"zone_name": "vouch.expert",
+					"pattern": "api.vouch.expert",
 					"custom_domain": true
 				}
 			],
