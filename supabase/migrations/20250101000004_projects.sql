@@ -1,0 +1,175 @@
+-- ============================================================================
+-- PROJECTS TABLE
+-- Core project entity with slug-based IDs
+-- ============================================================================
+
+-- Table definition
+CREATE TABLE public.projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT NOT NULL,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  billing_email TEXT,
+  stripe_customer_id TEXT,
+  settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ,
+  CONSTRAINT slug_format CHECK (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')
+);
+
+COMMENT ON TABLE projects IS 'Projects. Slug-based IDs for clean URLs.';
+COMMENT ON COLUMN projects.settings IS 'JSONB: { blacklist, whitelist, allowedDomains, riskWeights, thresholds, validations }';
+
+-- Indexes
+CREATE INDEX idx_projects_owner ON projects(owner_id);
+CREATE INDEX idx_projects_deleted ON projects(deleted_at) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_projects_slug_unique_active ON projects(slug) WHERE deleted_at IS NULL;
+
+-- Project-specific functions
+CREATE OR REPLACE FUNCTION public.is_project_owner(project_id_param UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM projects
+    WHERE id = project_id_param
+    AND owner_id = auth.uid()
+    AND deleted_at IS NULL
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public.is_project_owner(UUID) IS 'Check if current user owns the project';
+
+CREATE OR REPLACE FUNCTION public.is_project_member(project_id_param UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM project_members pm
+    JOIN projects p ON p.id = pm.project_id
+    WHERE pm.project_id = project_id_param
+    AND pm.user_id = auth.uid()
+    AND p.deleted_at IS NULL
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public.is_project_member(UUID) IS 'Check if current user is a member of the project';
+
+CREATE OR REPLACE FUNCTION public.has_project_access(project_id_param UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN is_project_owner(project_id_param) OR is_project_member(project_id_param);
+END;
+$$;
+
+COMMENT ON FUNCTION public.has_project_access(UUID) IS 'Check if current user has access to project (owner or member)';
+
+CREATE OR REPLACE FUNCTION public.handle_project_soft_delete()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN
+    -- Rename slug to deleted_{old_slug}_{timestamp}
+    NEW.slug = 'deleted_' || OLD.slug || '_' || to_char(NOW(), 'YYYYMMDDHHmmss');
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION public.handle_project_soft_delete() IS 'Auto-rename slug when project is soft deleted';
+
+CREATE OR REPLACE FUNCTION public.delete_project_cascade(project_id_param UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  subscription_ids TEXT[];
+  result JSONB;
+BEGIN
+  SELECT ARRAY_AGG(id)
+  INTO subscription_ids
+  FROM stripe_subscriptions
+  WHERE project_id = project_id_param
+  AND status IN ('active', 'trialing', 'past_due')
+  AND deleted_at IS NULL;
+
+  DELETE FROM api_keys WHERE project_id = project_id_param;
+  UPDATE stripe_subscriptions
+  SET deleted_at = NOW(), updated_at = NOW()
+  WHERE project_id = project_id_param AND deleted_at IS NULL;
+  DELETE FROM entitlements WHERE project_id = project_id_param;
+  DELETE FROM project_members WHERE project_id = project_id_param;
+  UPDATE projects
+  SET deleted_at = NOW(), updated_at = NOW()
+  WHERE id = project_id_param AND deleted_at IS NULL;
+
+  result := jsonb_build_object(
+    'success', TRUE,
+    'subscription_ids', COALESCE(subscription_ids, ARRAY[]::TEXT[])
+  );
+
+  RETURN result;
+END;
+$$;
+
+COMMENT ON FUNCTION public.delete_project_cascade(UUID) IS 'Soft delete project and cascade to related entities, returns subscription IDs to cancel';
+
+-- Triggers
+CREATE TRIGGER set_updated_at_projects
+  BEFORE UPDATE ON projects
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+CREATE TRIGGER trg_handle_project_soft_delete
+  BEFORE UPDATE ON projects
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_project_soft_delete();
+
+-- RLS
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can create projects"
+  ON projects FOR INSERT
+  TO authenticated
+  WITH CHECK (owner_id = auth.uid());
+
+CREATE POLICY "Users can view their projects"
+  ON projects FOR SELECT
+  TO authenticated
+  USING (deleted_at IS NULL AND (owner_id = auth.uid() OR is_project_member(id)));
+
+CREATE POLICY "Owners can update projects"
+  ON projects FOR UPDATE
+  TO authenticated
+  USING (deleted_at IS NULL AND owner_id = auth.uid())
+  WITH CHECK (deleted_at IS NULL AND owner_id = auth.uid());
+
+CREATE POLICY "Owners can delete projects"
+  ON projects FOR DELETE
+  TO authenticated
+  USING (deleted_at IS NULL AND owner_id = auth.uid());
+
+CREATE POLICY "Service role all projects"
+  ON projects FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- Grants
+GRANT ALL ON TABLE projects TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_project_owner(UUID) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_project_member(UUID) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.has_project_access(UUID) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.delete_project_cascade(UUID) TO service_role;
