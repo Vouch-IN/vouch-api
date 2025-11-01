@@ -12,7 +12,6 @@ export async function getEntitlementsFromPrice(supabaseAdmin, priceId) {
       const ent = price.product.entitlements;
       if (ent.validations_limit && ent.log_retention_days) {
         return {
-          team_limit: ent.team_limit,
           validations_limit: ent.validations_limit,
           log_retention_days: ent.log_retention_days,
           features: ent.features || []
