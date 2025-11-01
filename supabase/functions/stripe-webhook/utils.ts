@@ -1,32 +1,41 @@
 export async function getEntitlementsFromPrice(supabaseAdmin, priceId) {
-  if (!priceId) return null;
-  try {
-    const { data: price } = await supabaseAdmin.from('stripe_prices').select(`
+	if (!priceId) return null
+	try {
+		const { data: price } = await supabaseAdmin
+			.from('stripe_prices')
+			.select(
+				`
         id,
         product:stripe_products!inner(
           id,
           entitlements
         )
-      `).eq('id', priceId).is('deleted_at', null).is('stripe_products.deleted_at', null).single().throwOnError();
-    if (price?.product?.entitlements) {
-      const ent = price.product.entitlements;
-      if (ent.validations_limit && ent.log_retention_days) {
-        return {
-          validations_limit: ent.validations_limit,
-          log_retention_days: ent.log_retention_days,
-          features: ent.features || []
-        };
-      }
-    }
-    console.error(`❌ Invalid entitlements for price ${priceId}`);
-    return null;
-  } catch (error) {
-    console.error('❌ Error fetching entitlements:', error);
-    return null;
-  }
+      `
+			)
+			.eq('id', priceId)
+			.is('deleted_at', null)
+			.is('stripe_products.deleted_at', null)
+			.single()
+			.throwOnError()
+		if (price?.product?.entitlements) {
+			const ent = price.product.entitlements
+			if (ent.validations_limit && ent.log_retention_days) {
+				return {
+					features: ent.features || [],
+					log_retention_days: ent.log_retention_days,
+					validations_limit: ent.validations_limit
+				}
+			}
+		}
+		console.error(`❌ Invalid entitlements for price ${priceId}`)
+		return null
+	} catch (error) {
+		console.error('❌ Error fetching entitlements:', error)
+		return null
+	}
 }
 export function getMetadataValue(metadata, key) {
-  if (!metadata) return undefined;
-  // Try kebab-case first, fallback to snake_case
-  return metadata[key] || metadata[key.replace(/-/g, '_')];
+	if (!metadata) return undefined
+	// Try kebab-case first, fallback to snake_case
+	return metadata[key] || metadata[key.replace(/-/g, '_')]
 }

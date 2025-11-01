@@ -19,11 +19,13 @@ CREATE TABLE public.projects (
 
 COMMENT ON TABLE projects IS 'Projects. Slug-based IDs for clean URLs.';
 COMMENT ON COLUMN projects.settings IS 'JSONB: { blacklist, whitelist, allowedDomains, riskWeights, thresholds, validations }';
+COMMENT ON COLUMN projects.stripe_customer_id IS 'Stripe customer ID (cus_...). One per project.';
 
 -- Indexes
 CREATE INDEX idx_projects_owner ON projects(owner_id);
 CREATE INDEX idx_projects_deleted ON projects(deleted_at) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX idx_projects_slug_unique_active ON projects(slug) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_projects_stripe_customer_id_unique_active ON projects(stripe_customer_id) WHERE deleted_at IS NULL;
 
 -- Project-specific functions
 CREATE OR REPLACE FUNCTION public.is_project_owner(project_id_param UUID)
