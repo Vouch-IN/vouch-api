@@ -1,66 +1,105 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "vouch-api",
+	"name": "vouch-api-production",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-10-08",
 	"observability": {
 		"enabled": true
 	},
-	"routes": [
-		{
-			"pattern": "api.vouch.expert",
-			"custom_domain": true
-		}
-	],
-	"kv_namespaces": [
-		{
-			"binding": "DISPOSABLE_DOMAINS",
-			"id": "e13cccb2da3b4b6b9afdfb570f1ee2c8"
-		},
-		{
-			"binding": "MX_CACHE",
-			"id": "6fb8b69a712348f68c5b6cae367c27be"
-		},
-		{
-			"binding": "PROJECT_SETTINGS",
-			"id": "ad30cb8138754f16990d8965d7f163dd"
-		},
-		{
-			"binding": "RATE_LIMITS",
-			"id": "eb897f2c9dcc403cb20580e399393fcc"
-		},
-		{
-			"binding": "FINGERPRINTS",
-			"id": "34d4c1623171400aa992189f165ffff5"
-		},
-		{
-			"binding": "LOG_QUEUE",
-			"id": "61b9038373a1445a85875b2d805a38b0"
-		},
-		{
-			"binding": "USAGE_COUNTER",
-			"id": "e3805753f5b44bc0be4aa1e80043d73e"
-		}
-	],
+	"placement": {
+		"mode": "smart"
+	},
+	"triggers": {
+		"crons": [
+			"0 * * * *",
+			"0 2 * * *"
+		]
+	},
 	"env": {
 		"production": {
+			"name": "vouch-api-production",
 			"workers_dev": false,
 			"routes": [
 				{
 					"pattern": "api.vouch.expert/*",
-					"zone_name": "vouch.expert"
+					"zone_name": "vouch.expert",
+					"custom_domain": true
+				}
+			],
+			"vars": {
+				"SUPABASE_URL": "https://mnxbnpmjdwpfrdmkzheq.supabase.co",
+				"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert",
+				"ENVIRONMENT": "production"
+			},
+			"kv_namespaces": [
+				{
+					"binding": "DISPOSABLE_DOMAINS",
+					"id": "81fe48b7331840fc85fd0389f48b4fca"
+				},
+				{
+					"binding": "MX_CACHE",
+					"id": "d4a6b986c6bd4d7b9d3f84c0fb4dd249"
+				},
+				{
+					"binding": "PROJECT_SETTINGS",
+					"id": "844a25c9b4ac4c558084a205d53d59a8"
+				},
+				{
+					"binding": "RATE_LIMITS",
+					"id": "3ff7b20860944678af5ac9700f4a49c5"
+				},
+				{
+					"binding": "FINGERPRINTS",
+					"id": "8933f1c0d3f940bdb913c65e98cb8a3e"
+				},
+				{
+					"binding": "LOG_QUEUE",
+					"id": "60041df9693e48c093358b512c52f705"
+				},
+				{
+					"binding": "USAGE_COUNTER",
+					"id": "3adad7c5e7c642b0931c2b64594b210f"
+				}
+			]
+		},
+		"development": {
+			"name": "vouch-api-development",
+			"workers_dev": true,
+			"vars": {
+				"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
+				"PROMETHEUS_ENDPOINT": "https://prometheus-dev.vouch.expert",
+				"ENVIRONMENT": "development"
+			},
+			"kv_namespaces": [
+				{
+					"binding": "DISPOSABLE_DOMAINS",
+					"id": "4a7c3fcab7aa48728d2f4fc67240c08e"
+				},
+				{
+					"binding": "MX_CACHE",
+					"id": "5e4c8130dc994f21b75000780613bb5f"
+				},
+				{
+					"binding": "PROJECT_SETTINGS",
+					"id": "6dff0591adb940f7bc4de270be5c821b"
+				},
+				{
+					"binding": "RATE_LIMITS",
+					"id": "6d518a0ffbd64726bc9ffe79973f1fb1"
+				},
+				{
+					"binding": "FINGERPRINTS",
+					"id": "a55afe20b25e4524950ac87c8f5e8f1b"
+				},
+				{
+					"binding": "LOG_QUEUE",
+					"id": "7d2a7b1a508f40478df51b44f70ff500"
+				},
+				{
+					"binding": "USAGE_COUNTER",
+					"id": "8121a4611f214978a922984ff692db84"
 				}
 			]
 		}
-	},
-	"vars": {
-		"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
-		"PROMETHEUS_ENDPOINT": "https://prometheus.vouch.expert"
-	},
-	"triggers": {
-		"crons": ["0 * * * *", "0 2 * * *"]
-	},
-	"placement": {
-		"mode": "smart"
 	}
 }
