@@ -130,6 +130,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		await incrementUsage(auth.projectId, env)
 
 		// 19. Calculate total processing time for the request
+		// TODO: Move this to async process to reduce latency
 		const totalLatency = performance.now() - startedAt
 
 		// 20. Record validation log (async, non-blocking)
