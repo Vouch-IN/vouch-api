@@ -9,8 +9,9 @@ type ApiKeyPayload = WebhookPayload<Tables<'api_keys'>>
 type ProjectPayload = WebhookPayload<Tables<'projects'>>
 
 type WebhookPayload<T = unknown> = {
-	new: T
-	old: T
+	old_record: T
+	record: T
+	schema: string
 	table: string
 	type: 'DELETE' | 'INSERT' | 'UPDATE'
 }
@@ -44,7 +45,7 @@ async function handleApiKeyChange(
 	type: 'DELETE' | 'INSERT' | 'UPDATE',
 	env: Env
 ): Promise<void> {
-	const apiKey = type === 'DELETE' ? payload.old : payload.new
+	const apiKey = type === 'DELETE' ? payload.old_record : payload.record
 
 	const cacheKey = `apikey:${apiKey.key_hash}`
 
@@ -62,7 +63,7 @@ async function handleProjectChange(
 	type: 'DELETE' | 'INSERT' | 'UPDATE',
 	env: Env
 ): Promise<void> {
-	const project = type === 'DELETE' ? payload.old : payload.new
+	const project = type === 'DELETE' ? payload.old_record : payload.record
 
 	const cacheKey = `project:${project.id}`
 
