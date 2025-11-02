@@ -146,7 +146,8 @@ COMMENT ON FUNCTION public.get_project_entitlements(UUID) IS 'Securely get proje
 -- Grants
 -- Revoke direct access to materialized view from anon and authenticated
 -- Users should use get_project_entitlements() function instead which enforces RLS
+-- Service role needs direct access for admin operations
 REVOKE SELECT ON active_entitlements FROM anon, authenticated;
-GRANT SELECT ON active_entitlements TO service_role;
+GRANT SELECT ON active_entitlements TO service_role, authenticator;
 GRANT EXECUTE ON FUNCTION public.refresh_entitlement_summary() TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_project_entitlements(UUID) TO authenticated, service_role;
