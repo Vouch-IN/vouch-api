@@ -137,7 +137,8 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 	}
 
 	// Get period dates - try subscription item first, then subscription object
-	const periodStartTimestamp = subscriptionItem.current_period_start || subscription.current_period_start
+	const periodStartTimestamp =
+		subscriptionItem.current_period_start || subscription.current_period_start
 	const periodEndTimestamp = subscriptionItem.current_period_end || subscription.current_period_end
 
 	if (!periodStartTimestamp || !periodEndTimestamp) {
@@ -204,6 +205,9 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 		.upsert(
 			{
 				amount: priceData?.unit_amount || 0,
+				cancel_at: subscription.cancel_at
+					? new Date(subscription.cancel_at * 1000).toISOString()
+					: null,
 				cancel_at_period_end: subscription.cancel_at_period_end,
 				canceled_at: subscription.canceled_at
 					? new Date(subscription.canceled_at * 1000).toISOString()
@@ -215,7 +219,6 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 				id: subscription.id,
 				interval: priceData?.recurring?.interval || null,
 				interval_count: priceData?.recurring?.interval_count || null,
-				metadata: subscription.metadata || {},
 				price_id: priceId,
 				product_id: productId,
 				product_name: productName,

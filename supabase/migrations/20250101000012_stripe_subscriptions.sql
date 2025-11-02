@@ -24,6 +24,7 @@ CREATE TABLE public.stripe_subscriptions (
   status TEXT NOT NULL,
   current_period_start TIMESTAMPTZ,
   current_period_end TIMESTAMPTZ,
+  cancel_at TIMESTAMPTZ,
   cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
   canceled_at TIMESTAMPTZ,
   trial_start TIMESTAMPTZ,
@@ -33,7 +34,6 @@ CREATE TABLE public.stripe_subscriptions (
   entitlement_id UUID REFERENCES entitlements(id) ON DELETE SET NULL,
 
   -- Metadata
-  metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at TIMESTAMPTZ
@@ -43,12 +43,14 @@ COMMENT ON TABLE stripe_subscriptions IS 'Basic subscription data synced from St
 COMMENT ON COLUMN stripe_subscriptions.product_name IS 'Product name for display in UI';
 COMMENT ON COLUMN stripe_subscriptions.amount IS 'Amount in cents';
 COMMENT ON COLUMN stripe_subscriptions.interval IS 'Billing interval: day, week, month, year';
+COMMENT ON COLUMN stripe_subscriptions.cancel_at IS 'A date in the future at which the subscription will automatically get canceled';
 
 -- Indexes
 CREATE INDEX idx_subscriptions_project ON stripe_subscriptions(project_id);
 CREATE INDEX idx_subscriptions_status ON stripe_subscriptions(status);
 CREATE INDEX idx_subscriptions_deleted ON stripe_subscriptions(deleted_at) WHERE deleted_at IS NULL;
 CREATE INDEX idx_subscriptions_period_end ON stripe_subscriptions(current_period_end) WHERE status = 'active';
+CREATE INDEX idx_subscriptions_cancel_at ON stripe_subscriptions(cancel_at) WHERE cancel_at IS NOT NULL;
 
 -- Triggers
 CREATE TRIGGER set_updated_at_stripe_subscriptions

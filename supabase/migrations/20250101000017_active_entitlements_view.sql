@@ -46,6 +46,7 @@ SELECT
       'status', s.status,
       'current_period_start', s.current_period_start,
       'current_period_end', s.current_period_end,
+      'cancel_at', s.cancel_at,
       'cancel_at_period_end', s.cancel_at_period_end,
       'canceled_at', s.canceled_at,
       'trial_end', s.trial_end
