@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
 		const request = validateRequest(body)
 
 		// Verify user is the owner
-		if (request.owner_id !== user.id) {
+		if (!request.project_id && request.owner_id !== user.id) {
 			throw new AuthenticationError('User ID mismatch')
 		}
 

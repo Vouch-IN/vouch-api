@@ -30,15 +30,15 @@ export function validateRequest(body) {
 	}
 
 	// project_name is required (used for display and slug generation if needed)
-	if (!project_name || typeof project_name !== 'string') {
+	if (!project_id && (!project_name || typeof project_name !== 'string')) {
 		throw new ValidationError('project_name is required and must be a string')
 	}
 
-	if (!owner_id || !isValidUUID(owner_id)) {
+	if (!project_id && (!owner_id || !isValidUUID(owner_id))) {
 		throw new ValidationError('Invalid owner_id format')
 	}
 
-	if (!billing_email || !isValidEmail(billing_email)) {
+	if (!project_id && (!billing_email || !isValidEmail(billing_email))) {
 		throw new ValidationError('Invalid email format')
 	}
 
