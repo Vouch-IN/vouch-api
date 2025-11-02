@@ -1,4 +1,5 @@
-import { ValidationError } from './errors.ts'
+import { ValidationError } from '../_shared/errors.ts'
+import { isValidEmail, isValidUUID } from '../_shared/validation.ts'
 
 export function validateRequest(body) {
 	const {
@@ -18,8 +19,8 @@ export function validateRequest(body) {
 	}
 
 	// Validate project_id if provided
-	if (project_id && typeof project_id !== 'string') {
-		throw new ValidationError('project_id must be a string')
+	if (project_id && !isValidUUID(project_id)) {
+		throw new ValidationError('Invalid project_id format')
 	}
 
 	// Validate project_slug if provided
@@ -31,25 +32,25 @@ export function validateRequest(body) {
 	if (!project_name || typeof project_name !== 'string') {
 		throw new ValidationError('project_name is required and must be a string')
 	}
-	if (!owner_id || typeof owner_id !== 'string') {
-		throw new ValidationError('owner_id is required and must be a string')
+
+	if (!owner_id || !isValidUUID(owner_id)) {
+		throw new ValidationError('Invalid owner_id format')
 	}
-	if (!billing_email || typeof billing_email !== 'string') {
-		throw new ValidationError('billing_email is required and must be a string')
+
+	if (!billing_email || !isValidEmail(billing_email)) {
+		throw new ValidationError('Invalid email format')
 	}
+
 	if (!price_id || typeof price_id !== 'string') {
 		throw new ValidationError('price_id is required and must be a string')
 	}
+
 	if (!success_url || typeof success_url !== 'string') {
 		throw new ValidationError('success_url is required and must be a string')
 	}
+
 	if (!cancel_url || typeof cancel_url !== 'string') {
 		throw new ValidationError('cancel_url is required and must be a string')
-	}
-
-	// Basic email validation
-	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billing_email)) {
-		throw new ValidationError('Invalid email format')
 	}
 
 	// Slug format check (only if provided)

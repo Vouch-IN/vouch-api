@@ -100,26 +100,18 @@ Deno.serve(async (request) => {
 				console.log(`ℹ️ Unhandled: ${event.type}`)
 		}
 		return new Response(
-			JSON.stringify({
-				ok: true
-			}),
+			JSON.stringify({ ok: true }),
 			{
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				status: 200
 			}
 		)
 	} catch (error) {
 		console.error('❌ Handler error:', error)
 		return new Response(
-			JSON.stringify({
-				error: error.message
-			}),
+			JSON.stringify({ error: error.message }),
 			{
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				status: 500
 			}
 		)

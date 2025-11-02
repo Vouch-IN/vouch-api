@@ -1,58 +1,29 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
-import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@19.1.0'
 
+import { authenticateUser, initSupabaseClients } from '../_shared/auth.ts'
+import { handleCors } from '../_shared/cors.ts'
+import { AuthenticationError, handleError, successResponse } from '../_shared/errors.ts'
 import { getOrCreateStripeCustomer } from './customer.ts'
-import { AuthenticationError, handleError } from './errors.ts'
 import { findOrCreateProject, updateProjectStripeCustomer } from './project.ts'
 import { createCheckoutSession } from './subscription.ts'
 import { validateRequest } from './validations.ts'
 
-const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY'), {
+const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY')!, {
 	apiVersion: '2025-09-30.clover'
 })
 
-const supabaseAdmin = createClient(
-	Deno.env.get('SUPABASE_URL'),
-	Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-)
-
-const corsHeaders = {
-	'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-	'Access-Control-Allow-Origin': '*'
-}
-
 Deno.serve(async (req) => {
+	// Handle CORS preflight
 	if (req.method === 'OPTIONS') {
-		return new Response('ok', {
-			headers: corsHeaders
-		})
+		return handleCors()
 	}
+
 	try {
 		// Authenticate user
-		const authHeader = req.headers.get('Authorization')
-		if (!authHeader) {
-			throw new AuthenticationError('Missing authorization header')
-		}
-		const supabaseClient = createClient(
-			Deno.env.get('SUPABASE_URL'),
-			Deno.env.get('SUPABASE_ANON_KEY'),
-			{
-				global: {
-					headers: {
-						Authorization: authHeader
-					}
-				}
-			}
-		)
-		const {
-			data: { user },
-			error: userError
-		} = await supabaseClient.auth.getUser()
-		if (userError || !user) {
-			throw new AuthenticationError('Unauthorized')
-		}
+		const { user, supabaseClient } = await authenticateUser(req)
+		const { supabaseAdmin } = initSupabaseClients(req.headers.get('Authorization'))
 
 		// Parse and validate request
 		const body = await req.json()
@@ -105,18 +76,10 @@ Deno.serve(async (req) => {
 			request.cancel_url
 		)
 
-		const response = {
+		return successResponse({
 			checkout_session_id: sessionId,
 			checkout_url: sessionUrl,
 			project
-		}
-
-		return new Response(JSON.stringify(response), {
-			headers: {
-				...corsHeaders,
-				'Content-Type': 'application/json'
-			},
-			status: 200
 		})
 	} catch (error) {
 		return handleError(error)

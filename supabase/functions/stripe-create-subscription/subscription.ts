@@ -1,4 +1,4 @@
-import { StripeError } from './errors.ts'
+import { StripeError } from '../_shared/errors.ts'
 
 /**
  * Create a Stripe Checkout Session

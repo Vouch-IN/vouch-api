@@ -1,3 +1,5 @@
 {
-  "imports": {}
+  "imports": {
+    "stripe": "npm:stripe@19.1.0"
+  }
 }

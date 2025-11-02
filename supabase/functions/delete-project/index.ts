@@ -1,70 +1,101 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import Stripe from 'npm:stripe@19.1.0'
 
-import {
-	deleteProjectCascade,
-	verifyProjectOwnership
-} from './delete-project.ts'
-import { AuthenticationError, handleError } from './errors.ts'
-import { validateRequest } from './validations.ts'
+import { authenticateUser, initSupabaseClients } from '../_shared/auth.ts'
+import { handleCors } from '../_shared/cors.ts'
+import { AuthorizationError, handleError, NotFoundError, successResponse } from '../_shared/errors.ts'
+import { isValidUUID, validateRequired } from '../_shared/validation.ts'
 
-const supabaseAdmin = createClient(
-	Deno.env.get('SUPABASE_URL'),
-	Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-)
-const corsHeaders = {
-	'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-	'Access-Control-Allow-Origin': '*'
-}
+const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY')!, {
+	apiVersion: '2025-09-30.clover'
+})
+
 Deno.serve(async (req) => {
+	// Handle CORS preflight
 	if (req.method === 'OPTIONS') {
-		return new Response('ok', {
-			headers: corsHeaders
-		})
+		return handleCors()
 	}
+
 	try {
 		// Authenticate user
-		const authHeader = req.headers.get('Authorization')
-		if (!authHeader) {
-			throw new AuthenticationError('Missing authorization header')
-		}
-		const supabaseClient = createClient(
-			Deno.env.get('SUPABASE_URL'),
-			Deno.env.get('SUPABASE_ANON_KEY'),
-			{
-				global: {
-					headers: {
-						Authorization: authHeader
-					}
-				}
-			}
-		)
-		const {
-			data: { user },
-			error: userError
-		} = await supabaseClient.auth.getUser()
-		if (userError || !user) {
-			throw new AuthenticationError('Unauthorized')
-		}
+		const { user } = await authenticateUser(req)
+		const { supabaseAdmin } = initSupabaseClients(req.headers.get('Authorization'))
+
 		// Parse and validate request
 		const body = await req.json()
-		const request = validateRequest(body)
-		// Verify ownership
-		const project = await verifyProjectOwnership(supabaseAdmin, request.id, user.id)
-		// Delete project (transactional)
-		await deleteProjectCascade(supabaseAdmin, request.id)
-		console.log(`✅ Project ${request.id} deleted`)
-		const response = {
-			message: `${project.name} has been deleted`,
-			success: true
+		validateRequired(body, ['id'])
+
+		const { id: projectId } = body
+
+		// Validate UUID format
+		if (!isValidUUID(projectId)) {
+			throw new Error('Invalid project ID format')
 		}
-		return new Response(JSON.stringify(response), {
-			headers: {
-				...corsHeaders,
-				'Content-Type': 'application/json'
-			},
-			status: 200
+
+		// Verify project exists and get details
+		const { data: project, error } = await supabaseAdmin
+			.from('projects')
+			.select('name, owner_id, stripe_customer_id')
+			.eq('id', projectId)
+			.is('deleted_at', null)
+			.single()
+
+		if (error || !project) {
+			throw new NotFoundError('Project not found')
+		}
+
+		// Only owner can delete (more restrictive than can_manage_project for destructive operations)
+		if (project.owner_id !== user.id) {
+			throw new AuthorizationError('Only the project owner can delete this project')
+		}
+
+		console.log(`🗑️ Deleting project: ${projectId}`)
+
+		// Step 1: Cancel Stripe subscription if exists
+		if (project.stripe_customer_id) {
+			try {
+				console.log(`💳 Checking Stripe subscriptions for customer: ${project.stripe_customer_id}`)
+
+				// List all active subscriptions for this customer
+				const subscriptions = await stripe.subscriptions.list({
+					customer: project.stripe_customer_id,
+					status: 'active'
+				})
+
+				// Cancel each active subscription
+				for (const subscription of subscriptions.data) {
+					console.log(`🔴 Cancelling subscription: ${subscription.id}`)
+					await stripe.subscriptions.cancel(subscription.id)
+				}
+
+				if (subscriptions.data.length > 0) {
+					console.log(`✅ Cancelled ${subscriptions.data.length} Stripe subscription(s)`)
+				} else {
+					console.log(`ℹ️ No active Stripe subscriptions found`)
+				}
+			} catch (stripeError) {
+				// Log error but don't fail the entire deletion
+				console.error('⚠️ Failed to cancel Stripe subscription:', stripeError)
+				// Continue with project deletion even if Stripe cancellation fails
+			}
+		}
+
+		// Step 2: Delete project using transactional RPC
+		const { error: deleteError } = await supabaseAdmin.rpc('delete_project_cascade', {
+			project_id_param: projectId
+		})
+
+		if (deleteError) {
+			console.error('Delete error:', deleteError)
+			throw new Error('Failed to delete project')
+		}
+
+		console.log(`✅ Project ${projectId} deleted`)
+
+		return successResponse({
+			success: true,
+			message: `${project.name} has been deleted`
 		})
 	} catch (error) {
 		return handleError(error)

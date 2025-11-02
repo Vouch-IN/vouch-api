@@ -1,4 +1,4 @@
-import { StripeError } from './errors.ts'
+import { StripeError } from '../_shared/errors.ts'
 
 /**
  * Get existing customer ID from project or create a new one

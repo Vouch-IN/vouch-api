@@ -64,8 +64,7 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 	// Get customer ID from subscription
 	const customerId = subscription.customer
 	if (!customerId) {
-		console.error(`❌ No customer ID in subscription`)
-		return
+		throw new Error(`No customer ID in subscription ${subscription.id}`)
 	}
 
 	// Look up project by stripe_customer_id
@@ -76,10 +75,9 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 		.maybeSingle()
 
 	if (!project) {
-		console.error(
-			`❌ Project not found for customer ${customerId} - it should have been created before subscription`
+		throw new Error(
+			`Project not found for customer ${customerId} - it should have been created before subscription`
 		)
-		return
 	}
 
 	const projectId = project.id
@@ -99,8 +97,7 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 	// Get entitlements
 	const entitlements = await getEntitlementsFromPrice(supabaseAdmin, priceId)
 	if (!entitlements) {
-		console.error(`❌ Could not fetch entitlements for price ${priceId}`)
-		return
+		throw new Error(`Could not fetch entitlements for price ${priceId}`)
 	}
 	const periodStart = new Date(subscription.current_period_start * 1000).toISOString()
 	const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()
