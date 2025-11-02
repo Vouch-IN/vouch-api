@@ -47,12 +47,33 @@ Deno.serve(async (request) => {
 	console.log(`🔔 ${event.type} (${event.id})`)
 	try {
 		switch (event.type) {
+			// CHECKOUT SESSION
+			case 'checkout.session.completed': {
+				const session = event.data.object
+				// When checkout is completed, Stripe automatically creates the subscription
+				// We need to fetch it and sync it
+				if (session.mode === 'subscription' && session.subscription) {
+					const subscriptionId = typeof session.subscription === 'string'
+						? session.subscription
+						: session.subscription.id
+					const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+						expand: ['items.data.price.product']
+					})
+					await upsertSubscription(supabaseAdmin, subscription)
+				}
+				break
+			}
 			// SUBSCRIPTION
 			case 'customer.subscription.created':
 			case 'customer.subscription.resumed':
-			case 'customer.subscription.updated':
-				await upsertSubscription(supabaseAdmin, event.data.object)
+			case 'customer.subscription.updated': {
+				// Re-fetch with product expanded to ensure we have product name
+				const subscription = await stripe.subscriptions.retrieve(event.data.object.id, {
+					expand: ['items.data.price.product']
+				})
+				await upsertSubscription(supabaseAdmin, subscription)
 				break
+			}
 			case 'customer.subscription.deleted':
 				await deleteSubscription(supabaseAdmin, event.data.object)
 				break

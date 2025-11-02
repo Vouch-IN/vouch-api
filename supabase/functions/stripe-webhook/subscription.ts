@@ -1,4 +1,4 @@
-import { getEntitlementsFromPrice, getMetadataValue } from './utils.ts'
+import { getEntitlementsFromPrice } from './utils.ts'
 
 export async function deleteSubscription(supabaseAdmin, subscription) {
 	// Soft delete subscription
@@ -61,29 +61,40 @@ export async function pauseSubscription(supabaseAdmin, subscription) {
 	console.log(`✅ Subscription ${subscription.id} paused`)
 }
 export async function upsertSubscription(supabaseAdmin, subscription) {
-	const projectId = getMetadataValue(subscription.metadata, 'project-id')
-	if (!projectId) {
-		console.error(`❌ No project-id in subscription metadata`)
+	// Get customer ID from subscription
+	const customerId = subscription.customer
+	if (!customerId) {
+		console.error(`❌ No customer ID in subscription`)
 		return
 	}
-	// Check if project exists
+
+	// Look up project by stripe_customer_id
 	const { data: project } = await supabaseAdmin
 		.from('projects')
 		.select('id')
-		.eq('id', projectId)
+		.eq('stripe_customer_id', customerId)
 		.maybeSingle()
+
 	if (!project) {
 		console.error(
-			`❌ Project ${projectId} not found - it should have been created before subscription`
+			`❌ Project not found for customer ${customerId} - it should have been created before subscription`
 		)
 		return
 	}
+
+	const projectId = project.id
+
 	// Get price and product details
 	const priceData = subscription.items.data[0]?.price
 	const priceId = priceData?.id
 	const productData = priceData?.product
 	const productId = typeof productData === 'string' ? productData : productData?.id
-	const productName = typeof productData === 'object' ? productData?.name : null
+
+	// Fix product name - handle both expanded object and string ID
+	let productName = null
+	if (typeof productData === 'object' && productData?.name) {
+		productName = productData.name
+	}
 
 	// Get entitlements
 	const entitlements = await getEntitlementsFromPrice(supabaseAdmin, priceId)

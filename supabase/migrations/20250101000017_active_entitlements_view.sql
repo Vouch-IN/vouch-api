@@ -16,10 +16,11 @@ SELECT
     (
       SELECT ARRAY_AGG(DISTINCT elem)
       FROM (
-        SELECT unnest(array_agg(e2.features)) AS elem
+        SELECT unnest(e2.features) AS elem
         FROM entitlements e2
         WHERE e2.project_id = p.id
         AND (e2.ends_at IS NULL OR e2.ends_at > now())
+        AND array_length(e2.features, 1) > 0
       ) sub
     ),
     ARRAY[]::TEXT[]

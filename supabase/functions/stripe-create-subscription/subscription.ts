@@ -1,36 +1,37 @@
 import { StripeError, ValidationError } from './errors.ts'
-export async function createSubscription(stripe, customerId, priceId, metadata) {
+
+/**
+ * Create a Stripe Checkout Session
+ * The subscription will be created automatically when the user completes checkout
+ * Webhook will handle connecting it to the project via customer ID
+ */
+export async function createCheckoutSession(stripe, customerId, priceId, successUrl, cancelUrl) {
 	try {
-		const subscription = await stripe.subscriptions.create({
+		const session = await stripe.checkout.sessions.create({
 			customer: customerId,
-			expand: ['latest_invoice.payment_intent'],
-			items: [
+			line_items: [
 				{
-					price: priceId
+					price: priceId,
+					quantity: 1
 				}
 			],
-			metadata: {
-				'billing-email': metadata.billing_email,
-				'owner-id': metadata.owner_id,
-				'project-id': metadata.project_id
-			},
-			payment_settings: {
-				payment_method_types: ['card'],
-				save_default_payment_method: 'on_subscription'
-			}
+			mode: 'subscription',
+			success_url: successUrl,
+			cancel_url: cancelUrl,
+			payment_method_types: ['card'],
+			billing_address_collection: 'auto',
+			allow_promotion_codes: true
 		})
-		const invoice = subscription.latest_invoice
-		const paymentIntent = invoice.payment_intent
-		console.log(`✅ Subscription created: ${subscription.id}`)
+		console.log(`✅ Checkout session created: ${session.id}`)
 		return {
-			clientSecret: paymentIntent?.client_secret || null,
-			status: subscription.status,
-			subscriptionId: subscription.id
+			sessionId: session.id,
+			sessionUrl: session.url
 		}
 	} catch (error) {
-		throw new StripeError(`Failed to create subscription: ${error.message}`)
+		throw new StripeError(`Failed to create checkout session: ${error.message}`)
 	}
 }
+
 export async function validateProject(supabaseAdmin, projectId, projectSlug) {
 	// Check if project already exists
 	const [result1, result2] = await Promise.all([
