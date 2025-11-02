@@ -350,7 +350,7 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 
 [functions.stripe-webhook]
 enabled = true
-verify_jwt = true
+verify_jwt = false
 import_map = "./functions/stripe-webhook/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
@@ -359,13 +359,24 @@ entrypoint = "./functions/stripe-webhook/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/stripe-webhook/*.html" ]
 
-[functions.stripe-checkout-session]
+[functions.create-project-checkout]
 enabled = true
 verify_jwt = true
-import_map = "./functions/stripe-checkout-session/deno.json"
+import_map = "./functions/create-project-checkout/deno.json"
 # Uncomment to specify a custom file path to the entrypoint.
 # Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/stripe-checkout-session/index.ts"
+entrypoint = "./functions/create-project-checkout/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/stripe-create-subscription/*.html" ]
+
+[functions.upgrade-project-subscription]
+enabled = true
+verify_jwt = true
+import_map = "./functions/upgrade-project-subscription/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/upgrade-project-subscription/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/stripe-create-subscription/*.html" ]

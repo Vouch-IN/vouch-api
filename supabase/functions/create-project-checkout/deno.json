@@ -1,0 +1,6 @@
+{
+	"imports": {
+		"stripe": "npm:stripe@19.1.0",
+		"slugify": "npm:slugify@^1.6.6"
+	}
+}

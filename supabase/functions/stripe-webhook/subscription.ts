@@ -61,11 +61,15 @@ export async function pauseSubscription(supabaseAdmin, subscription) {
 	console.log(`✅ Subscription ${subscription.id} paused`)
 }
 export async function upsertSubscription(supabaseAdmin, subscription) {
+	console.log(`🔄 Processing subscription ${subscription.id}`)
+
 	// Get customer ID from subscription
 	const customerId = subscription.customer
 	if (!customerId) {
 		throw new Error(`No customer ID in subscription ${subscription.id}`)
 	}
+
+	console.log(`👤 Customer ID: ${customerId}`)
 
 	// Look up project by stripe_customer_id
 	const { data: project } = await supabaseAdmin
@@ -82,11 +86,42 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 
 	const projectId = project.id
 
+	// Get the first subscription item
+	const subscriptionItem = subscription.items?.data?.[0]
+	if (!subscriptionItem) {
+		throw new Error(`No subscription items found for subscription ${subscription.id}`)
+	}
+
 	// Get price and product details
-	const priceData = subscription.items.data[0]?.price
-	const priceId = priceData?.id
-	const productData = priceData?.product
-	const productId = typeof productData === 'string' ? productData : productData?.id
+	// Check if price is expanded (object) or just an ID (string)
+	let priceData = subscriptionItem.price
+	let priceId: string | undefined
+	let productData: any
+	let productId: string | undefined
+
+	// Handle case where price might be null or array [null]
+	if (!priceData || (Array.isArray(priceData) && priceData[0] === null)) {
+		// Fallback to top-level plan object if available
+		priceData = subscription.plan
+		priceId = priceData?.id
+		productData = priceData?.product
+		productId = typeof productData === 'string' ? productData : productData?.id
+	} else if (typeof priceData === 'string') {
+		priceId = priceData
+		productData = null
+		productId = null
+	} else {
+		priceId = priceData?.id
+		productData = priceData?.product
+		productId = typeof productData === 'string' ? productData : productData?.id
+	}
+
+	if (!priceId) {
+		console.error('❌ Subscription data:', JSON.stringify(subscription, null, 2))
+		throw new Error(`Could not determine price ID for subscription ${subscription.id}`)
+	}
+
+	console.log(`💰 Price ID: ${priceId}, Product ID: ${productId}`)
 
 	// Fix product name - handle both expanded object and string ID
 	let productName = null
@@ -95,12 +130,26 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 	}
 
 	// Get entitlements
+	console.log(`📋 Fetching entitlements for price ${priceId}`)
 	const entitlements = await getEntitlementsFromPrice(supabaseAdmin, priceId)
 	if (!entitlements) {
 		throw new Error(`Could not fetch entitlements for price ${priceId}`)
 	}
-	const periodStart = new Date(subscription.current_period_start * 1000).toISOString()
-	const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()
+
+	// Get period dates - try subscription item first, then subscription object
+	const periodStartTimestamp = subscriptionItem.current_period_start || subscription.current_period_start
+	const periodEndTimestamp = subscriptionItem.current_period_end || subscription.current_period_end
+
+	if (!periodStartTimestamp || !periodEndTimestamp) {
+		console.error('❌ Missing period timestamps')
+		console.error('Subscription item:', JSON.stringify(subscriptionItem, null, 2))
+		throw new Error(`Could not determine period dates for subscription ${subscription.id}`)
+	}
+
+	const periodStart = new Date(periodStartTimestamp * 1000).toISOString()
+	const periodEnd = new Date(periodEndTimestamp * 1000).toISOString()
+
+	console.log(`📅 Period: ${periodStart} to ${periodEnd}`)
 
 	// Find existing entitlement for this project from stripe source
 	const { data: existingEntitlement } = await supabaseAdmin

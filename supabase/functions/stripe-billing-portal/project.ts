@@ -1,6 +1,17 @@
+import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2'
+
 import { AuthorizationError, NotFoundError } from '../_shared/errors.ts'
 
-export async function findProject(supabaseAdmin, supabaseUser, projectId) {
+interface Project {
+	id: string
+	stripe_customer_id: string
+}
+
+export async function findProject(
+	supabaseAdmin: SupabaseClient,
+	supabaseUser: SupabaseClient,
+	projectId: string
+): Promise<Project> {
 	// Step 1: Try to find existing project
 	const { data: project } = await supabaseAdmin
 		.from('projects')
@@ -9,7 +20,14 @@ export async function findProject(supabaseAdmin, supabaseUser, projectId) {
 		.maybeSingle()
 
 	if (!project) {
-		throw new NotFoundError('Not Found: The project with id "' + projectId + '" was found.')
+		throw new NotFoundError(`Project with ID "${projectId}" not found`)
+	}
+
+	// Check if project has a Stripe customer ID
+	if (!project.stripe_customer_id) {
+		throw new NotFoundError(
+			`Project "${projectId}" does not have a Stripe customer. Please upgrade to a paid plan first.`
+		)
 	}
 
 	// SECURITY: Verify user has access to existing project using RPC

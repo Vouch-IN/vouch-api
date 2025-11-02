@@ -1,6 +1,0 @@
-{
-  "imports": {
-    "stripe": "npm:stripe@19.1.0",
-    "slugify": "npm:@sindresorhus/slugify@2.2.1"
-  }
-}

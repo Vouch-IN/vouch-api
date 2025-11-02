@@ -1,7 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 
-import Stripe from 'npm:stripe@19.1.0'
-
+import { initStripe } from '../_shared/stripe.ts'
 import { authenticateUser, initSupabaseClients } from '../_shared/auth.ts'
 import { handleCors } from '../_shared/cors.ts'
 import { handleError, successResponse } from '../_shared/errors.ts'
@@ -10,9 +9,27 @@ import { createBillingPortalSession } from './billing.ts'
 import { findProject } from './project.ts'
 import { validateRequest } from './validations.ts'
 
-const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY'), {
-	apiVersion: '2025-09-30.clover'
-})
+/**
+ * CREATE BILLING PORTAL SESSION
+ *
+ * Purpose: Generate a Stripe Billing Portal session URL for customers to manage their subscription
+ *
+ * Use cases:
+ * 1. View and update payment methods
+ * 2. View invoices and payment history
+ * 3. Update subscription (upgrade/downgrade)
+ * 4. Cancel subscription
+ *
+ * Required fields:
+ * - project_id: UUID of the project
+ * - return_url: URL to redirect back to after managing billing
+ *
+ * Security:
+ * - User must have 'manage_billing' permission on the project
+ * - Project must have an active Stripe customer ID
+ */
+
+const stripe = initStripe()
 
 Deno.serve(async (req) => {
 	// Handle CORS preflight
@@ -29,12 +46,13 @@ Deno.serve(async (req) => {
 		const body = await req.json()
 		const request = validateRequest(body)
 
-		console.log(`🚀 Processing project and billing portal session`)
+		console.log(`🚀 Creating billing portal session for project ${request.project_id}`)
 
-		// Step 1: Find project
+		// Step 1: Find project and verify access
 		const project = await findProject(supabaseAdmin, supabaseClient, request.project_id)
 
-		console.log(`📦 Project: ${project.id}`)
+		console.log(`✅ Project found: ${project.id}`)
+
 		// Step 2: Create Stripe Billing Portal Session
 		const { sessionId, sessionUrl } = await createBillingPortalSession(
 			stripe,
