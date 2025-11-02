@@ -51,8 +51,6 @@ Deno.serve(async (req) => {
 
 		console.log(`📦 Project: ${project.id} (slug: ${project.slug})`)
 
-		// TODO: Do not process stripe subscription for free plans
-
 		// Step 2: Get or create Stripe customer
 		// If project has stripe_customer_id, use it
 		// Otherwise, create new customer and update project
@@ -62,6 +60,15 @@ Deno.serve(async (req) => {
 		if (!project.stripe_customer_id) {
 			await updateProjectStripeCustomer(supabaseAdmin, project.id, customerId)
 			project.stripe_customer_id = customerId
+		}
+
+		if (request.is_free) {
+			console.log(`📦 Early return free project`)
+			return successResponse({
+				checkout_session_id: null,
+				checkout_url: null,
+				project
+			})
 		}
 
 		// Step 3: Create Stripe Checkout Session

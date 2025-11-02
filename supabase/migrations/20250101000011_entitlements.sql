@@ -9,6 +9,7 @@ CREATE TABLE public.entitlements (
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
   source TEXT NOT NULL CHECK (source IN ('stripe', 'manual', 'promo', 'free')),
   validations_limit INTEGER NOT NULL,
+  team_limit INTEGER NOT NULL,
   log_retention_days INTEGER NOT NULL,
   features TEXT[] NOT NULL,
   starts_at TIMESTAMPTZ,

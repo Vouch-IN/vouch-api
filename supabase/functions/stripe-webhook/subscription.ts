@@ -120,6 +120,7 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 				features: entitlements.features,
 				log_retention_days: entitlements.log_retention_days,
 				starts_at: periodStart,
+				team_limit: entitlements.team_limit,
 				updated_at: new Date().toISOString(),
 				validations_limit: entitlements.validations_limit
 			})
@@ -139,6 +140,7 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 				project_id: projectId,
 				source: 'stripe',
 				starts_at: periodStart,
+				team_limit: entitlements.team_limit,
 				validations_limit: entitlements.validations_limit
 			})
 			.select()

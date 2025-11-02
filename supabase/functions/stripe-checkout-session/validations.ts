@@ -5,6 +5,7 @@ export function validateRequest(body) {
 	const {
 		billing_email,
 		cancel_url,
+		is_free,
 		owner_id,
 		price_id,
 		project_id,
@@ -69,6 +70,7 @@ export function validateRequest(body) {
 	return {
 		billing_email,
 		cancel_url,
+		is_free,
 		owner_id,
 		price_id,
 		project_id: project_id || null,

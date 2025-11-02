@@ -1,17 +1,7 @@
 import slugify from 'slugify'
 
-/**
- * Find or create a project
- * If project exists (by ID or slug), return it
- * If not, create it with provided or generated slug
- *
- * @param supabaseAdmin - Service role client for creating projects
- * @param supabaseUser - Authenticated user client for authorization checks
- * @param ownerId - User ID making the request
- * @param projectName - Project name
- * @param projectId - Optional project ID to find
- * @param projectSlug - Optional project slug to find
- */
+import { AuthorizationError, ValidationError } from '../_shared/errors.ts'
+
 export async function findOrCreateProject(
 	supabaseAdmin,
 	supabaseUser,
@@ -49,7 +39,9 @@ export async function findOrCreateProject(
 		})
 
 		if (error || !canManage) {
-			throw new Error('Access denied: You do not have permission to manage billing for this project')
+			throw new AuthorizationError(
+				'Access denied: You do not have permission to manage billing for this project'
+			)
 		}
 
 		console.log(`✅ Project found: ${existingProject.id}`)
@@ -68,7 +60,7 @@ export async function findOrCreateProject(
 		.maybeSingle()
 
 	if (slugExists) {
-		throw new Error(`Project slug "${finalSlug}" is already taken`)
+		throw new ValidationError(`Project slug "${finalSlug}" is already taken`)
 	}
 
 	// Create project (let DB generate ID if not provided)

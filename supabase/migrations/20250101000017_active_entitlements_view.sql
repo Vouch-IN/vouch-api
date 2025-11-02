@@ -11,6 +11,7 @@ SELECT
   p.name AS project_name,
   p.owner_id,
   COALESCE(MAX(e.validations_limit), 1000) AS validations_limit,
+  COALESCE(MAX(e.team_limit), 1) AS team_limit,
   COALESCE(MAX(e.log_retention_days), 7) AS log_retention_days,
   COALESCE(
     (
@@ -112,6 +113,7 @@ RETURNS TABLE (
   project_name TEXT,
   owner_id UUID,
   validations_limit INTEGER,
+  team_limit INTEGER,
   log_retention_days INTEGER,
   features TEXT[],
   first_entitlement_start TIMESTAMPTZ,
