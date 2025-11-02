@@ -26,7 +26,7 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 BEGIN
-  RETURN encode(digest(key_value, 'sha256'), 'hex');
+  RETURN encode(extensions.digest(key_value, 'sha256'), 'hex');
 END;
 $$;
 

@@ -12,7 +12,7 @@ CREATE TABLE public.stripe_subscriptions (
   -- Product & Price info for display
   product_name TEXT,
   product_id TEXT,
-  price_id TEXT,
+  price_id TEXT REFERENCES stripe_prices(id) ON DELETE RESTRICT,
 
   -- Pricing details
   amount INTEGER NOT NULL,
