@@ -1,15 +1,23 @@
 import { StripeError } from './errors.ts'
 
 /**
- * Create a Stripe customer with project-id in metadata
- * This is created BEFORE the project exists in our database
+ * Get existing customer ID from project or create a new one
+ * If project has stripe_customer_id, return it
+ * Otherwise, create a new customer with project-id in metadata
  */
-export async function createStripeCustomer(stripe, email, projectId) {
+export async function getOrCreateStripeCustomer(stripe, project, email) {
+	// If project already has a customer ID, return it
+	if (project.stripe_customer_id) {
+		console.log(`✅ Using existing Stripe customer: ${project.stripe_customer_id}`)
+		return project.stripe_customer_id
+	}
+
+	// Create new customer
 	try {
 		const customer = await stripe.customers.create({
 			email,
 			metadata: {
-				'project-id': projectId
+				'project-id': project.id
 			}
 		})
 		console.log(`✅ Stripe customer created: ${customer.id}`)

@@ -1,4 +1,4 @@
-import { StripeError, ValidationError } from './errors.ts'
+import { StripeError } from './errors.ts'
 
 /**
  * Create a Stripe Checkout Session
@@ -29,16 +29,5 @@ export async function createCheckoutSession(stripe, customerId, priceId, success
 		}
 	} catch (error) {
 		throw new StripeError(`Failed to create checkout session: ${error.message}`)
-	}
-}
-
-export async function validateProject(supabaseAdmin, projectId, projectSlug) {
-	// Check if project already exists
-	const [result1, result2] = await Promise.all([
-		supabaseAdmin.from('projects').select('id').eq('id', projectId).maybeSingle(),
-		supabaseAdmin.from('projects').select('id').eq('slug', projectSlug).maybeSingle()
-	])
-	if (result1.data || result2.data) {
-		throw new ValidationError('Project already exists')
 	}
 }

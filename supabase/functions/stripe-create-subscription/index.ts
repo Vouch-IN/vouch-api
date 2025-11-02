@@ -3,10 +3,10 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@19.1.0'
 
-import { createStripeCustomer } from './customer.ts'
+import { getOrCreateStripeCustomer } from './customer.ts'
 import { AuthenticationError, handleError } from './errors.ts'
-import { createProject } from './project.ts'
-import { createCheckoutSession, validateProject } from './subscription.ts'
+import { findOrCreateProject, updateProjectStripeCustomer } from './project.ts'
+import { createCheckoutSession } from './subscription.ts'
 import { validateRequest } from './validations.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY'), {
@@ -63,23 +63,36 @@ Deno.serve(async (req) => {
 			throw new AuthenticationError('User ID mismatch')
 		}
 
-		console.log(`🚀 Creating project and checkout session: ${request.project_id}`)
+		console.log(`🚀 Processing project and checkout session`)
 
-		// Validate project doesn't exist
-		await validateProject(supabaseAdmin, request.project_id, request.project_slug)
-
-		// Step 1: Create Stripe customer FIRST with project-id in metadata
-		const customerId = await createStripeCustomer(stripe, request.billing_email, request.project_id)
-
-		// Step 2: Create project with stripe_customer_id
-		const project = await createProject(
+		// Step 1: Find or create project
+		// If project exists (by ID or slug), verify access and return it
+		// If not, create it with provided or generated slug
+		const project = await findOrCreateProject(
 			supabaseAdmin,
-			request.project_id,
-			request.project_slug,
-			request.project_name,
+			supabaseClient,
 			request.owner_id,
-			customerId
+			request.project_name,
+			request.project_id,
+			request.project_slug
 		)
+
+		console.log(`📦 Project: ${project.id} (slug: ${project.slug})`)
+
+		// Step 2: Get or create Stripe customer
+		// If project has stripe_customer_id, use it
+		// Otherwise, create new customer and update project
+		const customerId = await getOrCreateStripeCustomer(
+			stripe,
+			project,
+			request.billing_email
+		)
+
+		// Update project with customer ID if it was just created
+		if (!project.stripe_customer_id) {
+			await updateProjectStripeCustomer(supabaseAdmin, project.id, customerId)
+			project.stripe_customer_id = customerId
+		}
 
 		// Step 3: Create Stripe Checkout Session
 		// The subscription will be created when user completes checkout

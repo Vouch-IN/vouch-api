@@ -12,12 +12,22 @@ export function validateRequest(body) {
 		success_url
 	} = body
 
-	if (!project_id || typeof project_id !== 'string') {
-		throw new ValidationError('project_id is required and must be a string')
+	// Either project_id OR project_slug must be provided
+	if (!project_id && !project_slug) {
+		throw new ValidationError('Either project_id or project_slug is required')
 	}
-	if (!project_slug || typeof project_slug !== 'string') {
-		throw new ValidationError('project_slug is required and must be a string')
+
+	// Validate project_id if provided
+	if (project_id && typeof project_id !== 'string') {
+		throw new ValidationError('project_id must be a string')
 	}
+
+	// Validate project_slug if provided
+	if (project_slug && typeof project_slug !== 'string') {
+		throw new ValidationError('project_slug must be a string')
+	}
+
+	// project_name is required (used for display and slug generation if needed)
 	if (!project_name || typeof project_name !== 'string') {
 		throw new ValidationError('project_name is required and must be a string')
 	}
@@ -42,8 +52,8 @@ export function validateRequest(body) {
 		throw new ValidationError('Invalid email format')
 	}
 
-	// Slug format check
-	if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(project_slug)) {
+	// Slug format check (only if provided)
+	if (project_slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(project_slug)) {
 		throw new ValidationError('Invalid slug format')
 	}
 
@@ -60,9 +70,9 @@ export function validateRequest(body) {
 		cancel_url,
 		owner_id,
 		price_id,
-		project_id,
+		project_id: project_id || null,
 		project_name,
-		project_slug,
+		project_slug: project_slug || null,
 		success_url
 	}
 }
