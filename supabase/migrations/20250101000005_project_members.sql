@@ -8,6 +8,7 @@ CREATE TABLE public.project_members (
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('admin', 'member')),
+  accepted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (project_id, user_id)
@@ -124,6 +125,21 @@ $$;
 
 COMMENT ON FUNCTION public.delete_project_cascade(UUID) IS 'Soft delete project and cascade to related entities';
 
+CREATE OR REPLACE FUNCTION public.add_project_owner_as_admin()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  INSERT INTO public.project_members (project_id, user_id, role, accepted_at)
+  VALUES (NEW.id, NEW.owner_id, 'admin', NOW());
+  RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION public.add_project_owner_as_admin() IS 'Automatically add project owner as admin member when project is created';
+
 -- ============================================================================
 -- PROJECTS RLS POLICIES (project_members dependent)
 -- These policies require project_members table and functions
@@ -207,3 +223,11 @@ GRANT EXECUTE ON FUNCTION public.is_project_admin(UUID) TO anon, authenticated, 
 GRANT EXECUTE ON FUNCTION public.can_manage_project(UUID) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.has_project_access(UUID) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.delete_project_cascade(UUID) TO authenticated, service_role;
+
+
+
+-- Triggers
+CREATE TRIGGER trg_add_project_owner_as_admin
+  AFTER INSERT ON projects
+  FOR EACH ROW
+  EXECUTE FUNCTION add_project_owner_as_admin();
