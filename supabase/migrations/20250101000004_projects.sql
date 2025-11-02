@@ -32,10 +32,11 @@ CREATE OR REPLACE FUNCTION public.is_project_owner(project_id_param UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   RETURN EXISTS (
-    SELECT 1 FROM projects
+    SELECT 1 FROM public.projects
     WHERE id = project_id_param
     AND owner_id = auth.uid()
     AND deleted_at IS NULL
@@ -49,11 +50,12 @@ CREATE OR REPLACE FUNCTION public.is_project_member(project_id_param UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   RETURN EXISTS (
-    SELECT 1 FROM project_members pm
-    JOIN projects p ON p.id = pm.project_id
+    SELECT 1 FROM public.project_members pm
+    JOIN public.projects p ON p.id = pm.project_id
     WHERE pm.project_id = project_id_param
     AND pm.user_id = auth.uid()
     AND p.deleted_at IS NULL
@@ -68,11 +70,12 @@ RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
+SET search_path = ''
 AS $$
 BEGIN
   RETURN EXISTS (
-    SELECT 1 FROM project_members pm
-    JOIN projects p ON p.id = pm.project_id
+    SELECT 1 FROM public.project_members pm
+    JOIN public.projects p ON p.id = pm.project_id
     WHERE pm.project_id = project_id_param
     AND pm.user_id = auth.uid()
     AND pm.role = 'admin'
@@ -88,9 +91,10 @@ RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
+SET search_path = ''
 AS $$
 BEGIN
-  RETURN is_project_owner(project_id_param) OR is_project_admin(project_id_param);
+  RETURN public.is_project_owner(project_id_param) OR public.is_project_admin(project_id_param);
 END;
 $$;
 
@@ -100,9 +104,10 @@ CREATE OR REPLACE FUNCTION public.has_project_access(project_id_param UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
-  RETURN is_project_owner(project_id_param) OR is_project_member(project_id_param);
+  RETURN public.is_project_owner(project_id_param) OR public.is_project_member(project_id_param);
 END;
 $$;
 
@@ -111,6 +116,7 @@ COMMENT ON FUNCTION public.has_project_access(UUID) IS 'Check if current user ha
 CREATE OR REPLACE FUNCTION public.handle_project_soft_delete()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = ''
 AS $$
 BEGIN
   IF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN
@@ -127,17 +133,18 @@ CREATE OR REPLACE FUNCTION public.delete_project_cascade(project_id_param UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
   result JSONB;
 BEGIN
   -- Hard delete related entities
-  DELETE FROM api_keys WHERE project_id = project_id_param;
-  DELETE FROM entitlements WHERE project_id = project_id_param;
-  DELETE FROM project_members WHERE project_id = project_id_param;
+  DELETE FROM public.api_keys WHERE project_id = project_id_param;
+  DELETE FROM public.entitlements WHERE project_id = project_id_param;
+  DELETE FROM public.project_members WHERE project_id = project_id_param;
 
   -- Soft delete the project
-  UPDATE projects
+  UPDATE public.projects
   SET deleted_at = NOW(), updated_at = NOW()
   WHERE id = project_id_param AND deleted_at IS NULL;
 
@@ -163,37 +170,46 @@ CREATE TRIGGER trg_handle_project_soft_delete
 -- RLS
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can create projects"
+CREATE POLICY "Authenticated users can create projects"
   ON projects FOR INSERT
   TO authenticated
-  WITH CHECK (owner_id = auth.uid());
+  WITH CHECK (
+    owner_id = (SELECT auth.uid())
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Users can view their projects"
+CREATE POLICY "Authenticated users can view projects"
   ON projects FOR SELECT
   TO authenticated
-  USING (deleted_at IS NULL AND (owner_id = auth.uid() OR is_project_member(id)));
+  USING (
+    owner_id = (SELECT auth.uid())
+    OR EXISTS (
+      SELECT 1 FROM project_members pm
+      WHERE pm.project_id = projects.id
+      AND pm.user_id = (SELECT auth.uid())
+    )
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners and admins can update projects"
+CREATE POLICY "Authenticated users can update projects"
   ON projects FOR UPDATE
   TO authenticated
-  USING (deleted_at IS NULL AND can_manage_project(id))
-  WITH CHECK (deleted_at IS NULL AND can_manage_project(id));
+  USING (
+    can_manage_project(id)
+    OR is_superadmin()
+  )
+  WITH CHECK (
+    can_manage_project(id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners can delete projects"
+CREATE POLICY "Authenticated users can delete projects"
   ON projects FOR DELETE
   TO authenticated
-  USING (deleted_at IS NULL AND owner_id = auth.uid());
-
-CREATE POLICY "Superadmins can view all projects"
-  ON projects FOR SELECT
-  TO authenticated
-  USING (is_superadmin());
-
-CREATE POLICY "Superadmins can manage all projects"
-  ON projects FOR ALL
-  TO authenticated
-  USING (is_superadmin())
-  WITH CHECK (is_superadmin());
+  USING (
+    (owner_id = (SELECT auth.uid()) AND deleted_at IS NULL)
+    OR is_superadmin()
+  );
 
 CREATE POLICY "Service role all projects"
   ON projects FOR ALL

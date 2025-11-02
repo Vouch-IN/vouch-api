@@ -73,9 +73,10 @@ CREATE INDEX idx_active_entitlements_expiring ON active_entitlements(latest_enti
 CREATE OR REPLACE FUNCTION public.refresh_entitlement_summary()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = ''
 AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY active_entitlements;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY public.active_entitlements;
   RETURN NULL;
 END;
 $$;
@@ -122,16 +123,17 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
+SET search_path = ''
 AS $$
 BEGIN
   -- Only allow access if user has project access or is superadmin
-  IF NOT (has_project_access(p_project_id) OR is_superadmin()) THEN
+  IF NOT (public.has_project_access(p_project_id) OR public.is_superadmin()) THEN
     RAISE EXCEPTION 'Access denied to project entitlements';
   END IF;
 
   RETURN QUERY
   SELECT ae.*
-  FROM active_entitlements ae
+  FROM public.active_entitlements ae
   WHERE ae.project_id = p_project_id;
 END;
 $$;
@@ -139,6 +141,6 @@ $$;
 COMMENT ON FUNCTION public.get_project_entitlements(UUID) IS 'Securely get project entitlements with RLS enforcement';
 
 -- Grants
-GRANT SELECT ON active_entitlements TO service_role;
+GRANT SELECT ON active_entitlements TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.refresh_entitlement_summary() TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_project_entitlements(UUID) TO authenticated, service_role;

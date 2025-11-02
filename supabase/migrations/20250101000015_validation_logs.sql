@@ -34,16 +34,13 @@ CREATE INDEX idx_validation_logs_ip ON validation_logs(ip_address) WHERE ip_addr
 -- RLS
 ALTER TABLE validation_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Members can view logs"
+CREATE POLICY "Authenticated users can view validation logs"
   ON validation_logs FOR SELECT
   TO authenticated
-  USING (has_project_access(project_id));
-
-CREATE POLICY "Superadmins full access logs"
-  ON validation_logs FOR ALL
-  TO authenticated
-  USING (is_superadmin())
-  WITH CHECK (is_superadmin());
+  USING (
+    has_project_access(project_id)
+    OR is_superadmin()
+  );
 
 CREATE POLICY "Service role full access to logs"
   ON validation_logs FOR ALL

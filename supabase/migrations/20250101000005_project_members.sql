@@ -28,37 +28,41 @@ CREATE TRIGGER set_updated_at_project_members
 -- RLS
 ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Members can view all team members"
+CREATE POLICY "Authenticated users can view project members"
   ON project_members FOR SELECT
   TO authenticated
-  USING (has_project_access(project_id));
+  USING (
+    has_project_access(project_id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners and admins can manage team"
+CREATE POLICY "Authenticated users can add project members"
   ON project_members FOR INSERT
   TO authenticated
-  WITH CHECK (can_manage_project(project_id));
+  WITH CHECK (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners and admins can update team roles"
+CREATE POLICY "Authenticated users can update project members"
   ON project_members FOR UPDATE
   TO authenticated
-  USING (can_manage_project(project_id))
-  WITH CHECK (can_manage_project(project_id));
+  USING (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  )
+  WITH CHECK (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners and admins can remove team members"
+CREATE POLICY "Authenticated users can remove project members"
   ON project_members FOR DELETE
   TO authenticated
-  USING (can_manage_project(project_id));
-
-CREATE POLICY "Superadmins can view all members"
-  ON project_members FOR SELECT
-  TO authenticated
-  USING (is_superadmin());
-
-CREATE POLICY "Superadmins can manage all members"
-  ON project_members FOR ALL
-  TO authenticated
-  USING (is_superadmin())
-  WITH CHECK (is_superadmin());
+  USING (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  );
 
 CREATE POLICY "Service role all members"
   ON project_members FOR ALL

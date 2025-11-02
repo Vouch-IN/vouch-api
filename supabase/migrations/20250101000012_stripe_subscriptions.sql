@@ -59,21 +59,13 @@ CREATE TRIGGER set_updated_at_stripe_subscriptions
 -- RLS
 ALTER TABLE stripe_subscriptions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Members can view subscriptions"
+CREATE POLICY "Authenticated users can view subscriptions"
   ON stripe_subscriptions FOR SELECT
   TO authenticated
-  USING (deleted_at IS NULL AND has_project_access(project_id));
-
-CREATE POLICY "Superadmins can view all subscriptions"
-  ON stripe_subscriptions FOR SELECT
-  TO authenticated
-  USING (is_superadmin());
-
-CREATE POLICY "Superadmins can manage all subscriptions"
-  ON stripe_subscriptions FOR ALL
-  TO authenticated
-  USING (is_superadmin())
-  WITH CHECK (is_superadmin());
+  USING (
+    has_project_access(project_id)
+    OR is_superadmin()
+  );
 
 CREATE POLICY "Service role all subscriptions"
   ON stripe_subscriptions FOR ALL

@@ -7,6 +7,8 @@
 CREATE OR REPLACE FUNCTION public.set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   NEW.updated_at = now();
@@ -20,6 +22,8 @@ COMMENT ON FUNCTION public.set_updated_at() IS 'Trigger function to auto-update 
 CREATE OR REPLACE FUNCTION public.hash_api_key(key_value TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   RETURN encode(digest(key_value, 'sha256'), 'hex');
@@ -32,6 +36,8 @@ COMMENT ON FUNCTION public.hash_api_key(TEXT) IS 'Hash API key value using SHA25
 CREATE OR REPLACE FUNCTION public.generate_api_key(type TEXT, environment TEXT)
 RETURNS TEXT
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 DECLARE
   prefix TEXT;
@@ -63,9 +69,10 @@ CREATE OR REPLACE FUNCTION public.delete_old_logs()
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
-  DELETE FROM validation_logs
+  DELETE FROM public.validation_logs
   WHERE created_at < NOW() - INTERVAL '90 days';
 END;
 $$;
@@ -77,10 +84,10 @@ CREATE OR REPLACE FUNCTION public.is_service_role()
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-STABLE
+SET search_path = ''
 AS $$
 BEGIN
-  RETURN (auth.jwt() ->> 'role') = 'service_role';
+  RETURN (SELECT auth.role() = 'service_role');
 END;
 $$;
 

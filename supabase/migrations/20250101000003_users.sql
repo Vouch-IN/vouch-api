@@ -58,6 +58,7 @@ CREATE OR REPLACE FUNCTION public.is_superadmin()
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
   RETURN (
@@ -85,30 +86,25 @@ CREATE TRIGGER set_updated_at_users
 -- RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own profile"
+CREATE POLICY "Authenticated users can view users"
   ON users FOR SELECT
   TO authenticated
-  USING (id = auth.uid());
-
-CREATE POLICY "Users can update their own profile"
-  ON users FOR UPDATE
-  TO authenticated
-  USING (id = auth.uid())
-  WITH CHECK (
-    id = auth.uid()
-    AND is_superadmin = (SELECT is_superadmin FROM users WHERE id = auth.uid())
+  USING (
+    id = (SELECT auth.uid())
+    OR is_superadmin()
   );
 
-CREATE POLICY "Superadmins can view all users"
-  ON users FOR SELECT
-  TO authenticated
-  USING (is_superadmin());
-
-CREATE POLICY "Superadmins can update users"
+CREATE POLICY "Authenticated users can update users"
   ON users FOR UPDATE
   TO authenticated
-  USING (is_superadmin())
-  WITH CHECK (is_superadmin());
+  USING (
+    id = (SELECT auth.uid())
+    OR is_superadmin()
+  )
+  WITH CHECK (
+    (id = (SELECT auth.uid()) AND is_superadmin = (SELECT is_superadmin FROM users WHERE id = (SELECT auth.uid())))
+    OR is_superadmin()
+  );
 
 CREATE POLICY "Service role full access to users"
   ON users FOR ALL

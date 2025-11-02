@@ -10,8 +10,7 @@ CREATE TABLE public.usage (
   month TEXT NOT NULL CHECK (month ~ '^\d{4}-\d{2}$'),
   count INTEGER NOT NULL DEFAULT 0,
   limit_exceeded_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (project_id, month)
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 COMMENT ON TABLE usage IS 'Monthly validation usage per project. Format: YYYY-MM';
@@ -30,16 +29,13 @@ CREATE TRIGGER set_updated_at_usage
 -- RLS
 ALTER TABLE usage ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Members can view usage"
+CREATE POLICY "Authenticated users can view usage"
   ON usage FOR SELECT
   TO authenticated
-  USING (has_project_access(project_id));
-
-CREATE POLICY "Superadmins full access usage"
-  ON usage FOR ALL
-  TO authenticated
-  USING (is_superadmin())
-  WITH CHECK (is_superadmin());
+  USING (
+    has_project_access(project_id)
+    OR is_superadmin()
+  );
 
 CREATE POLICY "Service role full access to usage"
   ON usage FOR ALL

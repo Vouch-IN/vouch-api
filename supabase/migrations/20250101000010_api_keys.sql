@@ -19,13 +19,14 @@ CREATE TABLE public.api_keys (
 COMMENT ON TABLE api_keys IS 'Project API keys for client and server use';
 
 -- Indexes
+CREATE INDEX idx_api_keys_project_id ON api_keys(project_id);
 CREATE INDEX idx_api_keys_key_value ON api_keys(key_value);
-CREATE UNIQUE INDEX api_keys_key_value_unique ON api_keys(key_value);
 
 -- Function to generate initial API keys for new projects
 CREATE OR REPLACE FUNCTION public.generate_initial_api_keys()
 RETURNS TRIGGER
 LANGUAGE plpgsql
+SET search_path = ''
 AS $$
 DECLARE
   client_test_key TEXT;
@@ -34,41 +35,41 @@ DECLARE
   server_live_key TEXT;
 BEGIN
   -- Generate keys
-  client_test_key := generate_api_key('client', 'test');
-  server_test_key := generate_api_key('server', 'test');
-  client_live_key := generate_api_key('client', 'live');
-  server_live_key := generate_api_key('server', 'live');
+  client_test_key := public.generate_api_key('client', 'test');
+  server_test_key := public.generate_api_key('server', 'test');
+  client_live_key := public.generate_api_key('client', 'live');
+  server_live_key := public.generate_api_key('server', 'live');
 
   -- Insert client test key
-  INSERT INTO api_keys (
+  INSERT INTO public.api_keys (
     id, project_id, name, key_value, key_hash, type, environment, created_at
   ) VALUES (
     gen_random_uuid(), NEW.id, 'Default Client Key', client_test_key,
-    hash_api_key(client_test_key), 'client', 'test', NOW()
+    public.hash_api_key(client_test_key), 'client', 'test', NOW()
   );
 
   -- Insert server test key
-  INSERT INTO api_keys (
+  INSERT INTO public.api_keys (
     id, project_id, name, key_value, key_hash, type, environment, created_at
   ) VALUES (
     gen_random_uuid(), NEW.id, 'Default Server Key', server_test_key,
-    hash_api_key(server_test_key), 'server', 'test', NOW()
+    public.hash_api_key(server_test_key), 'server', 'test', NOW()
   );
 
   -- Insert client live key
-  INSERT INTO api_keys (
+  INSERT INTO public.api_keys (
     id, project_id, name, key_value, key_hash, type, environment, created_at
   ) VALUES (
     gen_random_uuid(), NEW.id, 'Default Client Key (Live)', client_live_key,
-    hash_api_key(client_live_key), 'client', 'live', NOW()
+    public.hash_api_key(client_live_key), 'client', 'live', NOW()
   );
 
   -- Insert server live key
-  INSERT INTO api_keys (
+  INSERT INTO public.api_keys (
     id, project_id, name, key_value, key_hash, type, environment, created_at
   ) VALUES (
     gen_random_uuid(), NEW.id, 'Default Server Key (Live)', server_live_key,
-    hash_api_key(server_live_key), 'server', 'live', NOW()
+    public.hash_api_key(server_live_key), 'server', 'live', NOW()
   );
 
   RETURN NEW;
@@ -86,37 +87,41 @@ CREATE TRIGGER trg_generate_initial_api_keys
 -- RLS
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Members can view api keys"
+CREATE POLICY "Authenticated users can view api keys"
   ON api_keys FOR SELECT
   TO authenticated
-  USING (has_project_access(project_id));
+  USING (
+    has_project_access(project_id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners and admins can create api keys"
+CREATE POLICY "Authenticated users can create api keys"
   ON api_keys FOR INSERT
   TO authenticated
-  WITH CHECK (can_manage_project(project_id));
+  WITH CHECK (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners and admins can update api keys"
+CREATE POLICY "Authenticated users can update api keys"
   ON api_keys FOR UPDATE
   TO authenticated
-  USING (can_manage_project(project_id))
-  WITH CHECK (can_manage_project(project_id));
+  USING (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  )
+  WITH CHECK (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Owners and admins can delete api keys"
+CREATE POLICY "Authenticated users can delete api keys"
   ON api_keys FOR DELETE
   TO authenticated
-  USING (can_manage_project(project_id));
-
-CREATE POLICY "Superadmins can view all api keys"
-  ON api_keys FOR SELECT
-  TO authenticated
-  USING (is_superadmin());
-
-CREATE POLICY "Superadmins can manage all api keys"
-  ON api_keys FOR ALL
-  TO authenticated
-  USING (is_superadmin())
-  WITH CHECK (is_superadmin());
+  USING (
+    can_manage_project(project_id)
+    OR is_superadmin()
+  );
 
 CREATE POLICY "Service role all api keys"
   ON api_keys FOR ALL
