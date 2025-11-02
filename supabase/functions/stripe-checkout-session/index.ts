@@ -5,12 +5,13 @@ import Stripe from 'npm:stripe@19.1.0'
 import { authenticateUser, initSupabaseClients } from '../_shared/auth.ts'
 import { handleCors } from '../_shared/cors.ts'
 import { AuthenticationError, handleError, successResponse } from '../_shared/errors.ts'
+
 import { getOrCreateStripeCustomer } from './customer.ts'
 import { findOrCreateProject, updateProjectStripeCustomer } from './project.ts'
 import { createCheckoutSession } from './subscription.ts'
 import { validateRequest } from './validations.ts'
 
-const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY')!, {
+const stripe = new Stripe(Deno.env.get('STRIPE_API_KEY'), {
 	apiVersion: '2025-09-30.clover'
 })
 
@@ -22,7 +23,7 @@ Deno.serve(async (req) => {
 
 	try {
 		// Authenticate user
-		const { user, supabaseClient } = await authenticateUser(req)
+		const { supabaseClient, user } = await authenticateUser(req)
 		const { supabaseAdmin } = initSupabaseClients(req.headers.get('Authorization'))
 
 		// Parse and validate request
@@ -50,14 +51,12 @@ Deno.serve(async (req) => {
 
 		console.log(`📦 Project: ${project.id} (slug: ${project.slug})`)
 
+		// TODO: Do not process stripe subscription for free plans
+
 		// Step 2: Get or create Stripe customer
 		// If project has stripe_customer_id, use it
 		// Otherwise, create new customer and update project
-		const customerId = await getOrCreateStripeCustomer(
-			stripe,
-			project,
-			request.billing_email
-		)
+		const customerId = await getOrCreateStripeCustomer(stripe, project, request.billing_email)
 
 		// Update project with customer ID if it was just created
 		if (!project.stripe_customer_id) {
