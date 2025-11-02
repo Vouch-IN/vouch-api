@@ -141,6 +141,9 @@ $$;
 COMMENT ON FUNCTION public.get_project_entitlements(UUID) IS 'Securely get project entitlements with RLS enforcement';
 
 -- Grants
-GRANT SELECT ON active_entitlements TO authenticated, service_role;
+-- Revoke direct access to materialized view from anon and authenticated
+-- Users should use get_project_entitlements() function instead which enforces RLS
+REVOKE SELECT ON active_entitlements FROM anon, authenticated;
+GRANT SELECT ON active_entitlements TO service_role;
 GRANT EXECUTE ON FUNCTION public.refresh_entitlement_summary() TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_project_entitlements(UUID) TO authenticated, service_role;

@@ -33,21 +33,29 @@ CREATE TRIGGER set_updated_at_entitlements
 -- RLS
 ALTER TABLE entitlements ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Members can view entitlements"
+CREATE POLICY "Authenticated users can view entitlements"
   ON entitlements FOR SELECT
   TO authenticated
-  USING (has_project_access(project_id));
+  USING (
+    has_project_access(project_id)
+    OR is_superadmin()
+  );
 
-CREATE POLICY "Superadmins can view all entitlements"
-  ON entitlements FOR SELECT
+CREATE POLICY "Superadmins can insert entitlements"
+  ON entitlements FOR INSERT
   TO authenticated
-  USING (is_superadmin());
+  WITH CHECK (is_superadmin());
 
-CREATE POLICY "Superadmins can manage all entitlements"
-  ON entitlements FOR ALL
+CREATE POLICY "Superadmins can update entitlements"
+  ON entitlements FOR UPDATE
   TO authenticated
   USING (is_superadmin())
   WITH CHECK (is_superadmin());
+
+CREATE POLICY "Superadmins can delete entitlements"
+  ON entitlements FOR DELETE
+  TO authenticated
+  USING (is_superadmin());
 
 CREATE POLICY "Service role all entitlements"
   ON entitlements FOR ALL
