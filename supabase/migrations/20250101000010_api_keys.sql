@@ -13,7 +13,8 @@ CREATE TABLE public.api_keys (
   environment TEXT NOT NULL CHECK (environment IN ('test', 'live')),
   name TEXT,
   last_used_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  allowed_domains TEXT[] DEFAULT '{}'
 );
 
 COMMENT ON TABLE api_keys IS 'Project API keys for client and server use';
