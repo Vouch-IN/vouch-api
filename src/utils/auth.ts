@@ -28,6 +28,28 @@ export function isApiKeyFormatValid(apiKey: string): boolean {
 }
 
 /**
+ * Detect if User-Agent is from a browser or mobile app
+ */
+export function isBrowserUserAgent(userAgent: string): boolean {
+	const browserPatterns = [
+		/Mozilla/i,
+		/Chrome/i,
+		/Safari/i,
+		/Firefox/i,
+		/Edge/i,
+		/Opera/i,
+		/MSIE/i,
+		/Trident/i, // IE
+		/iPhone/i,
+		/iPad/i,
+		/Android/i,
+		/Mobile/i
+	]
+
+	return browserPatterns.some((pattern) => pattern.test(userAgent))
+}
+
+/**
  * Check if a domain matches an allowed domain pattern
  * Supports:
  * - "*" (wildcard for all domains)
@@ -98,7 +120,7 @@ export function validateOrigin(
 	}
 
 	// Check if request domain matches any allowed pattern
-	const isAllowed = allowedDomains.some((pattern) => matchesDomainPattern(requestDomain, pattern))
+	const isAllowed = allowedDomains.some((pattern: string) => matchesDomainPattern(requestDomain, pattern))
 
 	if (!isAllowed) {
 		return { 
