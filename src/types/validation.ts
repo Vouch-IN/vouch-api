@@ -74,14 +74,20 @@ export type ValidationResults = {
 	signals: string[]
 }
 
-export type ValidationToggles = {
-	alias: boolean
-	catchall: boolean
-	device: boolean
-	disposable: boolean
-	ip: boolean
-	mx: boolean
-	roleEmail: boolean
-	smtp: boolean
-	syntax: boolean
+export enum ValidationAction {
+	BLOCK = 'block',
+	FLAG = 'flag',
+	INACTIVE = 'inactive'
 }
+
+export type ValidationToggles = {
+	alias: ValidationAction
+	catchall: ValidationAction
+	device: ValidationAction
+	disposable: ValidationAction
+	ip: ValidationAction
+	mx: ValidationAction
+	roleEmail: ValidationAction
+	smtp: ValidationAction
+	syntax: ValidationAction
+} 

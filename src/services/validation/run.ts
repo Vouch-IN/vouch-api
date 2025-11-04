@@ -1,4 +1,5 @@
-import { type ValidationResults, type ValidationToggles } from '../../types'
+import type { ValidationResults, ValidationToggles } from '../../types'
+import { ValidationAction } from '../../types'
 import { checkDeviceFingerprint } from '../device-validation'
 import {
 	checkDisposableEmail,
@@ -39,7 +40,7 @@ export async function runValidations(
 	if (!syntaxValid) results.signals.push('invalid_syntax')
 
 	// Alias detection (synchronous but grouped for consistency)
-	if (enabledValidations.alias) {
+	if (enabledValidations.alias !== ValidationAction.INACTIVE) {
 		const aliasStart = performance.now()
 		const hasAlias = detectAliasPattern(email, localPart)
 		results.checks.alias = { latency: performance.now() - aliasStart, pass: !hasAlias }
@@ -47,7 +48,7 @@ export async function runValidations(
 	}
 
 	// Role email detection (synchronous but grouped for consistency)
-	if (enabledValidations.roleEmail) {
+	if (enabledValidations.roleEmail !== ValidationAction.INACTIVE) {
 		const roleStart = performance.now()
 		const isRoleEmail = detectRoleEmail(localPart)
 		results.checks.roleEmail = { latency: performance.now() - roleStart, pass: !isRoleEmail }
@@ -58,7 +59,7 @@ export async function runValidations(
 	const validationPromises: Promise<void>[] = []
 
 	// All async validations run in parallel
-	if (enabledValidations.disposable) {
+	if (enabledValidations.disposable !== ValidationAction.INACTIVE) {
 		validationPromises.push(
 			(async () => {
 				const disposableStart = performance.now()
@@ -80,7 +81,7 @@ export async function runValidations(
 		)
 	}
 
-	if (enabledValidations.mx) {
+	if (enabledValidations.mx !== ValidationAction.INACTIVE) {
 		validationPromises.push(
 			(async () => {
 				const mxStart = performance.now()
@@ -107,7 +108,7 @@ export async function runValidations(
 		)
 	}
 
-	if (enabledValidations.smtp) {
+	if (enabledValidations.smtp !== ValidationAction.INACTIVE) {
 		validationPromises.push(
 			(async () => {
 				const smtpStart = performance.now()
@@ -126,7 +127,7 @@ export async function runValidations(
 		)
 	}
 
-	if (enabledValidations.catchall) {
+	if (enabledValidations.catchall !== ValidationAction.INACTIVE) {
 		validationPromises.push(
 			(async () => {
 				const catchAllStart = performance.now()
@@ -148,7 +149,7 @@ export async function runValidations(
 		)
 	}
 
-	if (enabledValidations.ip && ip) {
+	if (enabledValidations.ip !== ValidationAction.INACTIVE && ip) {
 		validationPromises.push(
 			(async () => {
 				const ipStart = performance.now()
@@ -172,7 +173,7 @@ export async function runValidations(
 		)
 	}
 
-	if (enabledValidations.device && fingerprintHash && projectId) {
+	if (enabledValidations.device !== ValidationAction.INACTIVE && fingerprintHash && projectId) {
 		validationPromises.push(
 			(async () => {
 				const deviceStart = performance.now()
