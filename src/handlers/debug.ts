@@ -1,5 +1,5 @@
 import { flushAllLogQueues, syncDisposableDomains } from '../crons'
-import { flushAllUsage } from '../kv'
+import { addRoleEmail, flushAllUsage, getRoleEmails, removeRoleEmail, setRoleEmails } from '../kv'
 import { errorResponse } from '../utils'
 
 export async function handleDebugFlushLogs(request: Request, env: Env): Promise<Response> {
@@ -31,7 +31,11 @@ export async function handleDebugKvDelete(request: Request, env: Env): Promise<R
 		if (!key) {
 			return errorResponse('missing_key', 'Key parameter required', 400)
 		}
-		await getNamespace(name, env).delete(key)
+		const namespace = getNamespace(name, env)
+		if (!namespace) {
+			return errorResponse('invalid_namespace', 'Invalid KV namespace', 400)
+		}
+		await namespace.delete(key)
 		return Response.json({ deleted: key, success: true })
 	} catch (error) {
 		return errorResponse('error', String(error), 500)
@@ -49,7 +53,11 @@ export async function handleDebugKvGet(request: Request, env: Env): Promise<Resp
 		if (!key) {
 			return errorResponse('missing_key', 'Key parameter required', 400)
 		}
-		const value = await getNamespace(name, env).get(key, { type: 'json' })
+		const namespace = getNamespace(name, env)
+		if (!namespace) {
+			return errorResponse('invalid_namespace', 'Invalid KV namespace', 400)
+		}
+		const value = await namespace.get(key, { type: 'json' })
 		return Response.json({ key, value })
 	} catch (error) {
 		return errorResponse('error', String(error), 500)
@@ -63,10 +71,14 @@ export async function handleDebugKvList(request: Request, env: Env): Promise<Res
 		if (!name) {
 			return errorResponse('missing_name', 'Name parameter required', 400)
 		}
-		const prefix = searchParams.get('prefix')
-		let limit = searchParams.get('limit')
-		limit = limit ? parseInt(limit, 10) : 1000
-		const list = await getNamespace(name, env).list({ limit, prefix })
+		const namespace = getNamespace(name, env)
+		if (!namespace) {
+			return errorResponse('invalid_namespace', 'Invalid KV namespace', 400)
+		}
+		const prefix = searchParams.get('prefix') ?? undefined
+		const limitStr = searchParams.get('limit')
+		const limit: number = limitStr ? parseInt(limitStr, 10) : 1000
+		const list = await namespace.list({ limit, prefix })
 		return Response.json(list)
 	} catch (error) {
 		return errorResponse('error', String(error), 500)
@@ -78,6 +90,81 @@ export async function handleDebugSyncDomains(request: Request, env: Env): Promis
 		const response = await syncDisposableDomains(env)
 		const data = await response.json()
 		return Response.json(data)
+	} catch (error) {
+		return errorResponse('error', String(error), 500)
+	}
+}
+
+export async function handleDebugGetRoleEmails(request: Request, env: Env): Promise<Response> {
+	try {
+		const roleEmails = await getRoleEmails(env)
+		return Response.json({
+			count: roleEmails.length,
+			roleEmails
+		})
+	} catch (error) {
+		return errorResponse('error', String(error), 500)
+	}
+}
+
+export async function handleDebugAddRoleEmail(request: Request, env: Env): Promise<Response> {
+	try {
+		const body = (await request.json()) as { localPart: string }
+		const { localPart } = body
+
+		if (!localPart || typeof localPart !== 'string') {
+			return errorResponse('invalid_body', 'localPart (string) is required', 400)
+		}
+
+		await addRoleEmail(env, localPart)
+		return Response.json({
+			added: localPart.toLowerCase().trim(),
+			success: true
+		})
+	} catch (error) {
+		return errorResponse('error', String(error), 500)
+	}
+}
+
+export async function handleDebugRemoveRoleEmail(request: Request, env: Env): Promise<Response> {
+	try {
+		const body = (await request.json()) as { localPart: string }
+		const { localPart } = body
+
+		if (!localPart || typeof localPart !== 'string') {
+			return errorResponse('invalid_body', 'localPart (string) is required', 400)
+		}
+
+		await removeRoleEmail(env, localPart)
+		return Response.json({
+			removed: localPart.toLowerCase().trim(),
+			success: true
+		})
+	} catch (error) {
+		return errorResponse('error', String(error), 500)
+	}
+}
+
+export async function handleDebugSetRoleEmails(request: Request, env: Env): Promise<Response> {
+	try {
+		const body = (await request.json()) as { roleEmails: unknown }
+		const { roleEmails } = body
+
+		if (!Array.isArray(roleEmails)) {
+			return errorResponse('invalid_body', 'roleEmails must be an array', 400)
+		}
+
+		if (roleEmails.some((email) => typeof email !== 'string')) {
+			return errorResponse('invalid_body', 'All roleEmails must be strings', 400)
+		}
+
+		await setRoleEmails(env, roleEmails)
+		return Response.json({
+			count: roleEmails.length,
+			roleEmails,
+			success: true,
+			updated: true
+		})
 	} catch (error) {
 		return errorResponse('error', String(error), 500)
 	}
@@ -100,5 +187,7 @@ function getNamespace(name: string, env: Env) {
 			return env.LOG_QUEUE
 		case name.startsWith('usage'):
 			return env.USAGE_COUNTER
+		case name.startsWith('role'):
+			return env.ROLE_EMAILS
 	}
 }

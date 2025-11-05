@@ -58,20 +58,6 @@ export async function runValidations(
 		}
 	}
 
-	// Role email detection (synchronous but grouped for consistency)
-	if (enabledValidations.roleEmail !== ValidationAction.INACTIVE) {
-		const roleStart = performance.now()
-		const isRoleEmail = detectRoleEmail(localPart)
-		results.checks.roleEmail = { latency: performance.now() - roleStart, pass: !isRoleEmail }
-		if (isRoleEmail) {
-			results.signals.push('role_email')
-			// Early return if role email check fails and is set to BLOCK
-			if (enabledValidations.roleEmail === ValidationAction.BLOCK) {
-				return results
-			}
-		}
-	}
-
 	// All async validations start executing immediately in parallel
 	// We track BLOCK validations separately for early exit optimization
 	// Both BLOCK and FLAG validations run concurrently for maximum performance
@@ -107,6 +93,38 @@ export async function runValidations(
 		
 		if (enabledValidations.disposable === ValidationAction.BLOCK) {
 			blockValidations.push(promise) // Track for early exit if it fails
+		}
+	}
+
+	// Role email detection (starts immediately in parallel)
+	if (enabledValidations.roleEmail !== ValidationAction.INACTIVE) {
+		const promise = (async () => {
+			const roleStart = performance.now()
+			try {
+				const isRoleEmail = await detectRoleEmail(localPart, env)
+				results.checks.roleEmail = {
+					latency: performance.now() - roleStart,
+					pass: !isRoleEmail
+				}
+				if (isRoleEmail) {
+					results.signals.push('role_email')
+					return true // Failed check
+				}
+				return false
+			} catch {
+				results.checks.roleEmail = {
+					error: 'role_email_check_failed',
+					latency: performance.now() - roleStart,
+					pass: true
+				}
+				return false
+			}
+		})()
+
+		allValidations.push(promise.then(() => {}))
+		
+		if (enabledValidations.roleEmail === ValidationAction.BLOCK) {
+			blockValidations.push(promise)
 		}
 	}
 

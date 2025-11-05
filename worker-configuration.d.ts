@@ -13,6 +13,15 @@ declare namespace Cloudflare {
 		WEBHOOK_SECRET: string
 		ENCRYPTION_KEY: string
 		ENVIRONMENT: string
+		// KV Namespaces
+		DISPOSABLE_DOMAINS: KVNamespace
+		MX_CACHE: KVNamespace
+		PROJECT_SETTINGS: KVNamespace
+		RATE_LIMITS: KVNamespace
+		FINGERPRINTS: KVNamespace
+		LOG_QUEUE: KVNamespace
+		USAGE_COUNTER: KVNamespace
+		ROLE_EMAILS: KVNamespace
 	}
 }
 interface Env extends Cloudflare.Env {}

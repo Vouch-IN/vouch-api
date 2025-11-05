@@ -1,11 +1,15 @@
 import { flushAllLogQueues, syncDisposableDomains } from './crons'
 import { handleHealth, handleValidation, handleWebhook } from './handlers'
 import {
+	handleDebugAddRoleEmail,
 	handleDebugFlushLogs,
 	handleDebugFlushUsages,
+	handleDebugGetRoleEmails,
 	handleDebugKvDelete,
 	handleDebugKvGet,
 	handleDebugKvList,
+	handleDebugRemoveRoleEmail,
+	handleDebugSetRoleEmails,
 	handleDebugSyncDomains
 } from './handlers/debug'
 import { handleError } from './middleware'
@@ -48,6 +52,18 @@ export default {
 				}
 				if (url.pathname === '/debug/flush-usages') {
 					return await handleDebugFlushUsages(request, env)
+				}
+				if (url.pathname === '/debug/role-emails' || url.pathname === '/debug/role-emails/get') {
+					return await handleDebugGetRoleEmails(request, env)
+				}
+				if (url.pathname === '/debug/role-emails/add') {
+					return await handleDebugAddRoleEmail(request, env)
+				}
+				if (url.pathname === '/debug/role-emails/remove') {
+					return await handleDebugRemoveRoleEmail(request, env)
+				}
+				if (url.pathname === '/debug/role-emails/set') {
+					return await handleDebugSetRoleEmails(request, env)
 				}
 			}
 

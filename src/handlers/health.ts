@@ -177,20 +177,20 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 				},
 				timeout: 800
 			},
-			validation_role: {
-				degradedAt: 10,
-				fn: async () => {
-					try {
-						// Test role email detection
-						const isRole = detectRoleEmail('admin')
-						const notRole = !detectRoleEmail('john.doe')
-						return isRole && notRole
-					} catch {
-						return Promise.resolve(false)
-					}
-				},
-				timeout: 50
+		validation_role: {
+			degradedAt: 10,
+			fn: async () => {
+				try {
+					// Test role email detection (fetches from KV)
+					const isRole = await detectRoleEmail('admin', env)
+					const notRole = !(await detectRoleEmail('john.doe', env))
+					return isRole && notRole
+				} catch {
+					return Promise.resolve(false)
+				}
 			},
+			timeout: 500 // Increased timeout for KV fetch
+		},
 			validation_smtp: {
 				degradedAt: 400,
 				fn: async () => {

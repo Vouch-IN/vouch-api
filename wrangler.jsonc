@@ -58,6 +58,11 @@
 				{
 					"binding": "USAGE_COUNTER",
 					"id": "3adad7c5e7c642b0931c2b64594b210f"
+				},
+				{
+					"binding": "ROLE_EMAILS",
+					"id": "963a3852a403470dbfead9c3dd6d1b39",
+					"remote": true
 				}
 			]
 		},
@@ -97,6 +102,11 @@
 				{
 					"binding": "USAGE_COUNTER",
 					"id": "8121a4611f214978a922984ff692db84"
+				},
+				{
+					"binding": "ROLE_EMAILS",
+					"id": "59ccac7fab8a493f9d63b6b8f2465d8b",
+					"remote": true
 				}
 			]
 		}
