@@ -1,10 +1,10 @@
 import { withTimeout } from '../../utils'
 
 export async function checkDisposableEmail(domainPart: string, env: Env): Promise<boolean> {
-	const domainsList =
-		(await withTimeout(
-			env.DISPOSABLE_DOMAINS.get<string[]>('domains:list', { type: 'json' }),
-			400
-		)) ?? []
-	return domainsList.includes(domainPart)
+	// Direct KV lookup - domain exists as key if it's disposable
+	const result = await withTimeout(
+		env.DISPOSABLE_DOMAINS.get(domainPart.toLowerCase()),
+		400
+	)
+	return result !== null
 }

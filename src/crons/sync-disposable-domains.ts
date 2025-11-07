@@ -16,10 +16,9 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 	]
 
 	try {
-		// Get current cached list from KV
-		const cachedDomainsArray =
-			(await env.DISPOSABLE_DOMAINS.get<string[]>('domains:list', { type: 'json' })) ?? []
-		const cachedDomains = new Set<string>(cachedDomainsArray)
+		// Get current cached domains by listing all keys
+		const listResult = await env.DISPOSABLE_DOMAINS.list()
+		const cachedDomains = new Set<string>(listResult.keys.map((key) => key.name))
 
 		// Fetch from all sources in parallel
 		const responses = await Promise.allSettled(
@@ -81,23 +80,14 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 			return jsonResponse(results)
 		}
 
-		// Update cache KV with full new list
-		await env.DISPOSABLE_DOMAINS.put('domains:list', JSON.stringify(Array.from(allDomains)))
+		// Add new domains to KV (each domain as a separate key)
+		const addPromises = added.map((domain) => env.DISPOSABLE_DOMAINS.put(domain, '1'))
 
-		// Update metadata
-		await env.DISPOSABLE_DOMAINS.put(
-			'domains:metadata',
-			JSON.stringify({
-				changes: {
-					added: added.length,
-					removed: removed.length
-				},
-				lastSync: Date.now(),
-				sources,
-				totalDomains: allDomains.size,
-				version: `v${new Date().toISOString().substring(0, 10)}`
-			})
-		)
+		// Remove old domains from KV
+		const removePromises = removed.map((domain) => env.DISPOSABLE_DOMAINS.delete(domain))
+
+		// Execute all KV operations in parallel
+		await Promise.all([...addPromises, ...removePromises])
 
 		const { error } = await client.from('disposable_domain_sync_log').insert(insertPayload)
 
