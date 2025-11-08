@@ -1,10 +1,6 @@
-import {
-	errorResponse,
-	fetchCachedApiKey,
-	getApiKeyFromRequest,
-	sha256Hex,
-	validateOrigin
-} from '../utils'
+import { createLogger, errorResponse, fetchCachedApiKey, getApiKeyFromRequest, sha256Hex, validateOrigin } from '../utils'
+
+const logger = createLogger({ middleware: 'cors' })
 
 /**
  * Add CORS headers to actual responses
@@ -40,20 +36,30 @@ export function corsHeaders(origin: string): Record<string, string> {
 export async function handleCors(request: Request, env: Env): Promise<Response> {
 	// Validate origin based on API key from headers
 	const apiKey = getApiKeyFromRequest(request)
+	const origin = request.headers.get('Origin')
+
 	if (!apiKey) {
+		logger.warn('CORS preflight missing API key', { origin })
 		return errorResponse('unauthorized', 'Missing Authorization header', 401)
 	}
 
 	const keyHash = await sha256Hex(apiKey)
-
 	const apiKeyData = await fetchCachedApiKey(keyHash, env)
+
 	if (!apiKeyData) {
+		logger.warn('CORS preflight with invalid API key', { keyHashPreview: keyHash.substring(0, 8), origin })
 		return errorResponse('unauthorized', 'Invalid API key', 401)
 	}
 
 	const originValidation = validateOrigin(request, apiKeyData)
 
 	if (!originValidation.valid || !originValidation.origin) {
+		logger.warn('CORS origin not allowed', {
+			allowedDomains: apiKeyData.allowed_domains,
+			keyId: apiKeyData.id,
+			origin,
+			reason: originValidation.error
+		})
 		return errorResponse('not_allowed', 'Origin not allowed', 403)
 	}
 

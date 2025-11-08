@@ -70,12 +70,6 @@ export async function authenticate(request: Request, env: Env): Promise<AuthResu
 		return { error: originValidation.error ?? 'Origin validation failed', success: false }
 	}
 
-	logger.debug('Authentication successful', {
-		keyId: apiKey.id,
-		keyType: apiKey.type,
-		projectId: apiKey.project_id
-	})
-
 	return {
 		apiKey,
 		projectId: apiKey.project_id,
