@@ -38,65 +38,41 @@ export function corsHeaders(origin: string): Record<string, string> {
 
 /**
  * Handle CORS preflight OPTIONS requests
- * Supports API key via query param for origin validation during preflight
+ * Requires the request and environment for fetching KV cached keys
  */
 export async function handleCors(request: Request, env: Env): Promise<Response> {
-	const origin = request.headers.get('Origin')
-
-	if (!origin) {
-		logger.warn('CORS preflight without Origin header')
-		return errorResponse('bad_request', 'Missing Origin header', 400)
+	// Validate origin based on API key from headers
+	const apiKey = getApiKeyFromRequest(request)
+	if (!apiKey) {
+		logger.warn('CORS preflight missing API key', { origin: request.headers.get('Origin') })
+		return errorResponse('unauthorized', 'Missing Authorization header', 401)
 	}
 
-	// Try to get API key from query param (recommended for preflight)
-	const url = new URL(request.url)
-	const apiKeyFromQuery = url.searchParams.get('key')
+	const keyHash = await sha256Hex(apiKey)
 
-	if (apiKeyFromQuery) {
-		// Validate API key and origin during preflight
-		const keyHash = await sha256Hex(apiKeyFromQuery)
-		const apiKeyData = await fetchCachedApiKey(keyHash, env)
-
-		if (!apiKeyData) {
-			logger.warn('CORS preflight with invalid API key', {
-				keyHashPreview: keyHash.substring(0, 8),
-				origin
-			})
-			return errorResponse('unauthorized', 'Invalid API key', 401)
-		}
-
-		const originValidation = validateOrigin(request, apiKeyData)
-
-		if (!originValidation.valid || !originValidation.origin) {
-			logger.warn('CORS origin not allowed', {
-				allowedDomains: apiKeyData.allowed_domains,
-				keyId: apiKeyData.id,
-				origin,
-				reason: originValidation.error
-			})
-			return errorResponse('forbidden', 'Origin not allowed for this API key', 403)
-		}
-
-		// Origin validated - return CORS headers
-		return new Response(null, {
-			headers: corsHeaders(originValidation.origin),
-			status: 204
+	const apiKeyData = await fetchCachedApiKey(keyHash, env)
+	if (!apiKeyData) {
+		logger.warn('CORS preflight with invalid API key', {
+			keyHashPreview: keyHash.substring(0, 8),
+			origin: request.headers.get('Origin')
 		})
+		return errorResponse('unauthorized', 'Invalid API key', 401)
 	}
 
-	// Fallback: No API key provided in query param
-	// Check if Authorization header will be sent in actual request
-	const requestedHeaders = request.headers.get('Access-Control-Request-Headers')
-	const willSendAuth = requestedHeaders?.toLowerCase().includes('authorization')
+	const originValidation = validateOrigin(request, apiKeyData)
 
-	if (!willSendAuth) {
-		logger.warn('CORS preflight without Authorization', { origin })
-		return errorResponse('unauthorized', 'Authorization required', 401)
+	if (!originValidation.valid || !originValidation.origin) {
+		logger.warn('CORS origin not allowed', {
+			allowedDomains: apiKeyData.allowed_domains,
+			keyId: apiKeyData.id,
+			origin: request.headers.get('Origin'),
+			reason: originValidation.error
+		})
+		return errorResponse('not_allowed', 'Origin not allowed', 403)
 	}
 
-	// Allow preflight - actual request will validate API key + origin
 	return new Response(null, {
-		headers: corsHeaders(origin),
+		headers: corsHeaders(originValidation.origin),
 		status: 204
 	})
 }
