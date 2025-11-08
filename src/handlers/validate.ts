@@ -21,7 +21,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 
 	try {
 		if (request.method === 'OPTIONS') {
-			return await handleCors(request, env)
+			return await handleCors(request)
 		}
 
 		if (request.method !== 'POST') {
@@ -47,8 +47,8 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			const originValidation = validateOrigin(request, auth.apiKey)
 			if (!originValidation.valid) {
 				requestLogger.warn('Origin validation failed', {
-					origin: request.headers.get('Origin'),
 					allowedDomains: auth.apiKey.allowed_domains,
+					origin: request.headers.get('Origin'),
 					reason: originValidation.error
 				})
 				return errorResponse('forbidden', originValidation.error ?? 'Origin not allowed', 403)

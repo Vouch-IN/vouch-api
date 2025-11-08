@@ -33,7 +33,7 @@ export function corsHeaders(origin: string): Record<string, string> {
  * Handle CORS preflight OPTIONS requests
  * Just returns CORS headers - actual auth happens on the real request
  */
-export async function handleCors(request: Request, _env: Env): Promise<Response> {
+export function handleCors(request: Request): Promise<Response> {
 	const origin = request.headers.get('Origin')
 
 	if (!origin) {
