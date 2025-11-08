@@ -5,7 +5,7 @@ import { handleCors } from '../_shared/cors.ts'
 import { errorResponse, handleError, successResponse } from '../_shared/errors.ts'
 
 const WEBHOOK_URL = Deno.env.get('WEBHOOK_URL')!
-const WEBHOOK_SECRET = Deno.env.get('WEBHOOK_SECRET')!
+const WEBHOOK_TOKEN = Deno.env.get('WEBHOOK_TOKEN')!
 
 type ResyncOptions = {
 	apiKeys?: boolean
@@ -24,6 +24,15 @@ Deno.serve(async (req) => {
 	}
 
 	try {
+		// Validate required environment variables
+		if (!WEBHOOK_URL || !WEBHOOK_TOKEN) {
+			console.error('[Resync] Missing required environment variables', {
+				hasWebhookUrl: !!WEBHOOK_URL,
+				hasWebhookToken: !!WEBHOOK_TOKEN
+			})
+			return errorResponse('Configuration error: Missing required environment variables', 500)
+		}
+
 		// Authenticate user (must be authenticated to trigger resync)
 		await authenticateUser(req)
 		const { supabaseAdmin } = initSupabaseClients(req.headers.get('Authorization'))
@@ -61,7 +70,7 @@ Deno.serve(async (req) => {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'x-webhook-token': WEBHOOK_SECRET
+							'x-webhook-token': WEBHOOK_TOKEN
 						},
 						body: JSON.stringify({
 							table: 'api_keys',
@@ -100,7 +109,7 @@ Deno.serve(async (req) => {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'x-webhook-token': WEBHOOK_SECRET
+							'x-webhook-token': WEBHOOK_TOKEN
 						},
 						body: JSON.stringify({
 							table: 'projects',
