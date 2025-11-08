@@ -30,7 +30,7 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
 
 	const payload: ApiKeyPayload | WebhookPayload = await request.json()
 	const { table, type } = payload
-	logger.info('Processing webhook event', { table, type })
+	logger.info('Processing webhook event', { payload, table, type })
 
 	try {
 		if (table === 'api_keys') {
