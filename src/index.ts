@@ -19,17 +19,32 @@ export default {
 		try {
 			const url = new URL(request.url)
 
-			// Health check
+			// Health check (v1)
+			if (url.pathname === '/v1/health') {
+				return await handleHealth(request, env)
+			}
+
+			// Health check (always latest version)
 			if (url.pathname === '/health') {
 				return await handleHealth(request, env)
 			}
 
-			// Webhook endpoint (from Supabase)
+			// Webhook endpoint (from Supabase) (v1)
+			if (url.pathname === '/v1/webhook') {
+				return await handleWebhook(request, env)
+			}
+
+			// Webhook endpoint (from Supabase) (always latest version)
 			if (url.pathname === '/webhook') {
 				return await handleWebhook(request, env)
 			}
 
-			// Main validation endpoint
+			// Main validation endpoint (v1)
+			if (url.pathname === '/v1/validate') {
+				return await handleValidation(request, env)
+			}
+
+			// Main validation endpoint (always latest version)
 			if (url.pathname === '/validate') {
 				return await handleValidation(request, env)
 			}
