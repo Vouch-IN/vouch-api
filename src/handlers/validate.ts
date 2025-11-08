@@ -41,7 +41,6 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			keyType: auth.apiKey.type,
 			projectId: auth.projectId
 		})
-		requestLogger.info('Validation request received')
 
 		// 2. Check rate limit based on key type
 		const rate = await checkRateLimit(
@@ -112,7 +111,6 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		const asn = request.cf?.asn
 
 		// 13. Run all enabled validations and get results including checks, previous signups and risk signals
-		requestLogger.debug('Starting validation checks', { email, fingerprintHash, ip })
 		const validationResults = await runValidations(
 			auth.projectId,
 			email,
@@ -140,12 +138,14 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		// 17. Determine if email is valid based on risk score threshold and syntax check
 		const isValid = riskScore < thresholds.flag && !finalResults.signals.includes('invalid_syntax')
 
-		requestLogger.info('Validation completed', {
-			isValid,
-			recommendation,
-			riskScore,
-			signalsCount: finalResults.signals.length
-		})
+		// Log only problematic validations (blocked or flagged)
+		if (recommendation === 'block' || recommendation === 'flag') {
+			requestLogger.warn('Validation blocked/flagged', {
+				recommendation,
+				riskScore,
+				signals: finalResults.signals
+			})
+		}
 
 		// 18. Increment usage counter (Durable Object)
 		await incrementUsage(auth.projectId, env)

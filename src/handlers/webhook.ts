@@ -19,8 +19,6 @@ type WebhookPayload<T = unknown> = {
 }
 
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
-	logger.info('Received webhook request')
-
 	// Verify webhook secret for security
 	const webhookSecret = request.headers.get('x-webhook-token')
 	if (webhookSecret !== env.WEBHOOK_SECRET) {
@@ -30,7 +28,6 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
 
 	const payload: ApiKeyPayload | WebhookPayload = await request.json()
 	const { operation, table } = payload
-	logger.info('Processing webhook event', { operation, table })
 
 	try {
 		if (table === 'api_keys') {
@@ -41,7 +38,6 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
 			logger.warn('Unknown table in webhook', { table })
 		}
 
-		logger.info('Successfully processed webhook event', { operation, table })
 		return Response.json({ success: true })
 	} catch (error) {
 		logger.error('Webhook processing failed', error, { operation, table })
@@ -56,21 +52,13 @@ async function handleApiKeyChange(
 ): Promise<void> {
 	const apiKey = operation === 'DELETE' ? payload.old_row : payload.new_row
 	const cacheKey = `apikey:${apiKey.key_hash}`
-	const keyHashPreview = apiKey.key_hash.substring(0, 8)
-
-	const apiKeyLogger = logger.child({ handler: 'apiKey', keyHashPreview, operation })
-	apiKeyLogger.info('Processing API key change')
 
 	if (operation === 'DELETE') {
 		// Remove from cache if deleted or revoked
 		await env.PROJECT_SETTINGS.delete(cacheKey)
-		apiKeyLogger.info('Deleted API key from cache', {
-			reason: operation === 'DELETE' ? 'deleted' : 'revoked'
-		})
 	} else {
 		// Update cache with fresh data
 		await env.PROJECT_SETTINGS.put(cacheKey, JSON.stringify(apiKey))
-		apiKeyLogger.info('Updated API key cache')
 	}
 }
 
@@ -82,16 +70,11 @@ async function handleProjectChange(
 	const project = operation === 'DELETE' ? payload.old_row : payload.new_row
 	const cacheKey = `project:${project.id}`
 
-	const projectLogger = logger.child({ handler: 'project', operation, projectId: project.id })
-	projectLogger.info('Processing project change', { payload: project })
-
 	if (operation === 'DELETE') {
 		// Remove from cache if deleted
 		await env.PROJECT_SETTINGS.delete(cacheKey)
-		projectLogger.info('Deleted project from cache')
 	} else {
 		// Fetch full project data with subscriptions
-		projectLogger.info('Fetching full project data')
 		const client = createClient(env)
 		const { data, error } = await client
 			.from('projects')
@@ -118,20 +101,13 @@ async function handleProjectChange(
 			.maybeSingle()
 
 		if (error ?? !data) {
-			projectLogger.error('Failed to fetch project data', error)
+			logger.error('Failed to fetch project data from webhook', error, { projectId: project.id })
 			return
 		}
-
-		projectLogger.info('Successfully fetched project data', { data })
 
 		const settings = data.settings as null | ProjectSettings
 		const subscription = data.subscription?.[0]
 		const entitlement = data.entitlement?.[0]
-
-		projectLogger.info('Building project settings cache', {
-			hasEntitlement: !!entitlement,
-			hasSubscription: !!subscription
-		})
 
 		const projectSettings = {
 			blacklist: settings?.blacklist ?? [],
@@ -177,6 +153,5 @@ async function handleProjectChange(
 		}
 
 		await env.PROJECT_SETTINGS.put(cacheKey, JSON.stringify(projectSettings))
-		projectLogger.info('Successfully updated project cache')
 	}
 }

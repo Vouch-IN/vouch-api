@@ -31,14 +31,6 @@ export async function checkRateLimit(
 		expirationTtl: Math.ceil(WINDOW_MS / 1000) + 60
 	})
 
-	logger.debug('Rate limit check passed', {
-		projectId,
-		keyType,
-		currentCount: currentCount + 1,
-		limit,
-		remaining: Math.max(limit - currentCount - 1, 0)
-	})
-
 	return {
 		allowed: true,
 		limit,

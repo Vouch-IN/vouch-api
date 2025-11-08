@@ -21,7 +21,6 @@ export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		try {
 			const url = new URL(request.url)
-			logger.debug('Request received', { path: url.pathname, method: request.method })
 
 			// Health check (v1)
 			if (url.pathname === '/v1/health') {
@@ -93,25 +92,20 @@ export default {
 		}
 	},
 	async scheduled(controller: ScheduledController, env: Env): Promise<void> {
-		const cronLogger = logger.child({ cron: controller.cron })
 		try {
 			const cron = controller.cron
 
 			// Run log flush every hour
 			if (cron === '0 * * * *') {
-				cronLogger.info('Starting log flush cron job')
 				await flushAllLogQueues(env)
-				cronLogger.info('Log flush cron job completed')
 			}
 
 			// Run disposable domain sync daily at 2am UTC
 			if (cron === '0 2 * * *') {
-				cronLogger.info('Starting disposable domain sync cron job')
 				await syncDisposableDomains(env)
-				cronLogger.info('Disposable domain sync cron job completed')
 			}
 		} catch (error) {
-			cronLogger.error('Scheduled job failed', error)
+			logger.error('Scheduled job failed', error, { cron: controller.cron })
 		}
 	}
 }
