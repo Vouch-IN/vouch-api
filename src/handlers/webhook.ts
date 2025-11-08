@@ -11,11 +11,11 @@ type ApiKeyPayload = WebhookPayload<Tables<'api_keys'>>
 type ProjectPayload = WebhookPayload<Tables<'projects'>>
 
 type WebhookPayload<T = unknown> = {
-	old_record: T
-	record: T
-	schema: string
+	new_row: T
+	old_row: T
+	operation: 'DELETE' | 'INSERT' | 'UPDATE'
 	table: string
-	type: 'DELETE' | 'INSERT' | 'UPDATE'
+	timestamp: string
 }
 
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
@@ -29,43 +29,43 @@ export async function handleWebhook(request: Request, env: Env): Promise<Respons
 	}
 
 	const payload: ApiKeyPayload | WebhookPayload = await request.json()
-	const { table, type } = payload
-	logger.info('Processing webhook event', { payload, table, type })
+	const { operation, table } = payload
+	logger.info('Processing webhook event', { operation, table })
 
 	try {
 		if (table === 'api_keys') {
-			await handleApiKeyChange(payload as ApiKeyPayload, type, env)
+			await handleApiKeyChange(payload as ApiKeyPayload, operation, env)
 		} else if (table === 'projects') {
-			await handleProjectChange(payload as ProjectPayload, type, env)
+			await handleProjectChange(payload as ProjectPayload, operation, env)
 		} else {
 			logger.warn('Unknown table in webhook', { table })
 		}
 
-		logger.info('Successfully processed webhook event', { table, type })
+		logger.info('Successfully processed webhook event', { operation, table })
 		return Response.json({ success: true })
 	} catch (error) {
-		logger.error('Webhook processing failed', error, { table, type })
+		logger.error('Webhook processing failed', error, { operation, table })
 		return handleError(error)
 	}
 }
 
 async function handleApiKeyChange(
 	payload: ApiKeyPayload,
-	type: 'DELETE' | 'INSERT' | 'UPDATE',
+	operation: 'DELETE' | 'INSERT' | 'UPDATE',
 	env: Env
 ): Promise<void> {
-	const apiKey = type === 'DELETE' ? payload.old_record : payload.record
+	const apiKey = operation === 'DELETE' ? payload.old_row : payload.new_row
 	const cacheKey = `apikey:${apiKey.key_hash}`
 	const keyHashPreview = apiKey.key_hash.substring(0, 8)
 
-	const apiKeyLogger = logger.child({ handler: 'apiKey', keyHashPreview, type })
+	const apiKeyLogger = logger.child({ handler: 'apiKey', keyHashPreview, operation })
 	apiKeyLogger.info('Processing API key change')
 
-	if (type === 'DELETE') {
+	if (operation === 'DELETE') {
 		// Remove from cache if deleted or revoked
 		await env.PROJECT_SETTINGS.delete(cacheKey)
 		apiKeyLogger.info('Deleted API key from cache', {
-			reason: type === 'DELETE' ? 'deleted' : 'revoked'
+			reason: operation === 'DELETE' ? 'deleted' : 'revoked'
 		})
 	} else {
 		// Update cache with fresh data
@@ -76,16 +76,16 @@ async function handleApiKeyChange(
 
 async function handleProjectChange(
 	payload: ProjectPayload,
-	type: 'DELETE' | 'INSERT' | 'UPDATE',
+	operation: 'DELETE' | 'INSERT' | 'UPDATE',
 	env: Env
 ): Promise<void> {
-	const project = type === 'DELETE' ? payload.old_record : payload.record
+	const project = operation === 'DELETE' ? payload.old_row : payload.new_row
 	const cacheKey = `project:${project.id}`
 
-	const projectLogger = logger.child({ handler: 'project', projectId: project.id, type })
+	const projectLogger = logger.child({ handler: 'project', operation, projectId: project.id })
 	projectLogger.info('Processing project change', { payload: project })
 
-	if (type === 'DELETE') {
+	if (operation === 'DELETE') {
 		// Remove from cache if deleted
 		await env.PROJECT_SETTINGS.delete(cacheKey)
 		projectLogger.info('Deleted project from cache')
