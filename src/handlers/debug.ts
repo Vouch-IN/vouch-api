@@ -2,6 +2,25 @@ import { flushAllLogQueues, syncDisposableDomains } from '../crons'
 import { addRoleEmail, flushAllUsage, getRoleEmails, removeRoleEmail, setRoleEmails } from '../kv'
 import { errorResponse } from '../utils'
 
+export async function handleDebugAddRoleEmail(request: Request, env: Env): Promise<Response> {
+	try {
+		const body = (await request.json())
+		const { localPart } = body
+
+		if (!localPart || typeof localPart !== 'string') {
+			return errorResponse('invalid_body', 'localPart (string) is required', 400)
+		}
+
+		await addRoleEmail(env, localPart)
+		return Response.json({
+			added: localPart.toLowerCase().trim(),
+			success: true
+		})
+	} catch (error) {
+		return errorResponse('error', String(error), 500)
+	}
+}
+
 export async function handleDebugFlushLogs(request: Request, env: Env): Promise<Response> {
 	try {
 		await flushAllLogQueues(env)
@@ -15,6 +34,18 @@ export async function handleDebugFlushUsages(request: Request, env: Env): Promis
 	try {
 		await flushAllUsage(env)
 		return Response.json({ success: true })
+	} catch (error) {
+		return errorResponse('error', String(error), 500)
+	}
+}
+
+export async function handleDebugGetRoleEmails(request: Request, env: Env): Promise<Response> {
+	try {
+		const roleEmails = await getRoleEmails(env)
+		return Response.json({
+			count: roleEmails.length,
+			roleEmails
+		})
 	} catch (error) {
 		return errorResponse('error', String(error), 500)
 	}
@@ -85,50 +116,9 @@ export async function handleDebugKvList(request: Request, env: Env): Promise<Res
 	}
 }
 
-export async function handleDebugSyncDomains(request: Request, env: Env): Promise<Response> {
-	try {
-		const response = await syncDisposableDomains(env)
-		const data = await response.json()
-		return Response.json(data)
-	} catch (error) {
-		return errorResponse('error', String(error), 500)
-	}
-}
-
-export async function handleDebugGetRoleEmails(request: Request, env: Env): Promise<Response> {
-	try {
-		const roleEmails = await getRoleEmails(env)
-		return Response.json({
-			count: roleEmails.length,
-			roleEmails
-		})
-	} catch (error) {
-		return errorResponse('error', String(error), 500)
-	}
-}
-
-export async function handleDebugAddRoleEmail(request: Request, env: Env): Promise<Response> {
-	try {
-		const body = (await request.json()) as { localPart: string }
-		const { localPart } = body
-
-		if (!localPart || typeof localPart !== 'string') {
-			return errorResponse('invalid_body', 'localPart (string) is required', 400)
-		}
-
-		await addRoleEmail(env, localPart)
-		return Response.json({
-			added: localPart.toLowerCase().trim(),
-			success: true
-		})
-	} catch (error) {
-		return errorResponse('error', String(error), 500)
-	}
-}
-
 export async function handleDebugRemoveRoleEmail(request: Request, env: Env): Promise<Response> {
 	try {
-		const body = (await request.json()) as { localPart: string }
+		const body = (await request.json())
 		const { localPart } = body
 
 		if (!localPart || typeof localPart !== 'string') {
@@ -147,7 +137,7 @@ export async function handleDebugRemoveRoleEmail(request: Request, env: Env): Pr
 
 export async function handleDebugSetRoleEmails(request: Request, env: Env): Promise<Response> {
 	try {
-		const body = (await request.json()) as { roleEmails: unknown }
+		const body = (await request.json())
 		const { roleEmails } = body
 
 		if (!Array.isArray(roleEmails)) {
@@ -165,6 +155,16 @@ export async function handleDebugSetRoleEmails(request: Request, env: Env): Prom
 			success: true,
 			updated: true
 		})
+	} catch (error) {
+		return errorResponse('error', String(error), 500)
+	}
+}
+
+export async function handleDebugSyncDomains(request: Request, env: Env): Promise<Response> {
+	try {
+		const response = await syncDisposableDomains(env)
+		const data = await response.json()
+		return Response.json(data)
 	} catch (error) {
 		return errorResponse('error', String(error), 500)
 	}

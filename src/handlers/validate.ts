@@ -16,7 +16,11 @@ import { createLogger, errorResponse, getCachedData, jsonResponse, validateOrigi
 
 const logger = createLogger({ handler: 'validate' })
 
-export async function handleValidation(request: Request, env: Env): Promise<Response> {
+export async function handleValidation(
+	request: Request,
+	env: Env,
+	ctx: ExecutionContext
+): Promise<Response> {
 	const startedAt = performance.now()
 
 	try {
@@ -161,41 +165,49 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		}
 
 		// 19. Increment usage counter (Durable Object)
-		await incrementUsage(auth.projectId, env)
+		ctx.waitUntil(incrementUsage(auth.projectId, env))
 
 		// 20. Calculate total processing time for the request
 		// TODO: Move this to async process to reduce latency
 		const totalLatency = performance.now() - startedAt
 
 		// 21. Record validation log (async, non-blocking)
-		recordValidationLog(
-			auth.projectId,
-			email,
-			finalResults,
-			fingerprintHash,
-			ip,
-			riskScore,
-			recommendation,
-			totalLatency,
-			isValid,
-			env
-		).catch((error: unknown) => {
-			requestLogger.error('Failed to log validation', error)
-		})
+		ctx.waitUntil(
+			recordValidationLog(
+				auth.projectId,
+				email,
+				finalResults,
+				fingerprintHash,
+				ip,
+				riskScore,
+				recommendation,
+				totalLatency,
+				isValid,
+				env
+			).catch((error: unknown) => {
+				requestLogger.error('Failed to log validation', error)
+			})
+		)
 
 		// 22. Record metrics (Prometheus)
-		recordMetric(env, 'vouch_validations_total', 1, {
-			project_id: auth.projectId,
-			result: recommendation
-		})
-		recordMetric(env, 'vouch_validation_duration_ms', totalLatency, {
-			project_id: auth.projectId
-		})
+		ctx.waitUntil(
+			recordMetric(env, 'vouch_validations_total', 1, {
+				project_id: auth.projectId,
+				result: recommendation
+			})
+		)
+		ctx.waitUntil(
+			recordMetric(env, 'vouch_validation_duration_ms', totalLatency, {
+				project_id: auth.projectId
+			})
+		)
 
 		// 23. Update API key last_used_at (async, non-blocking)
-		updateApiKeyLastUsed(auth.apiKey.id, env).catch((error: unknown) => {
-			requestLogger.error('Failed to update API key last_used_at', error)
-		})
+		ctx.waitUntil(
+			updateApiKeyLastUsed(auth.apiKey.id, env).catch((error: unknown) => {
+				requestLogger.error('Failed to update API key last_used_at', error)
+			})
+		)
 
 		const response: ValidationResponse = {
 			checks: finalResults.checks,
@@ -220,11 +232,11 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 
 		return resp
 	} catch (error: unknown) {
-		recordMetric(env, 'vouch_errors_total', 1, {
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-			// @ts-expect-error
-			error_type: error.name ?? 'unknown'
-		})
+		ctx.waitUntil(
+			recordMetric(env, 'vouch_errors_total', 1, {
+				error_type: error.name ?? 'unknown'
+			})
+		)
 		return handleError(error)
 	}
 }

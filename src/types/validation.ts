@@ -1,3 +1,9 @@
+export enum ValidationAction {
+	BLOCK = 'block',
+	FLAG = 'flag',
+	INACTIVE = 'inactive'
+}
+
 export type CheckResult = {
 	error?: string
 	latency: number
@@ -72,12 +78,6 @@ export type ValidationResults = {
 	deviceData: DeviceData | null
 	ipData?: IPData | null
 	signals: string[]
-}
-
-export enum ValidationAction {
-	BLOCK = 'block',
-	FLAG = 'flag',
-	INACTIVE = 'inactive'
 }
 
 export type ValidationToggles = {

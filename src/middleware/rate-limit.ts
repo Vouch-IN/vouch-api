@@ -18,7 +18,7 @@ export async function checkRateLimit(
 	const limit = keyType === 'client' ? CLIENT_RATE_LIMIT : SERVER_RATE_LIMIT
 
 	if (currentCount >= limit) {
-		logger.warn('Rate limit exceeded', { projectId, keyType, currentCount, limit })
+		logger.warn('Rate limit exceeded', { currentCount, keyType, limit, projectId })
 		return {
 			allowed: false,
 			limit,

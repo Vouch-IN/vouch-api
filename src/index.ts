@@ -18,7 +18,7 @@ import { createLogger } from './utils'
 const logger = createLogger({ service: 'worker' })
 
 export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		try {
 			const url = new URL(request.url)
 
@@ -44,12 +44,12 @@ export default {
 
 			// Main validation endpoint (v1)
 			if (url.pathname === '/v1/validate') {
-				return await handleValidation(request, env)
+				return await handleValidation(request, env, ctx)
 			}
 
 			// Main validation endpoint (always latest version)
 			if (url.pathname === '/validate') {
-				return await handleValidation(request, env)
+				return await handleValidation(request, env, ctx)
 			}
 
 			if (env.ENVIRONMENT === 'development') {
