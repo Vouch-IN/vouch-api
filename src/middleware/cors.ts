@@ -1,11 +1,4 @@
-import {
-	createLogger,
-	errorResponse,
-	fetchCachedApiKey,
-	getApiKeyFromRequest,
-	sha256Hex,
-	validateOrigin
-} from '../utils'
+import { createLogger, errorResponse } from '../utils'
 
 const logger = createLogger({ middleware: 'cors' })
 
@@ -38,41 +31,19 @@ export function corsHeaders(origin: string): Record<string, string> {
 
 /**
  * Handle CORS preflight OPTIONS requests
- * Requires the request and environment for fetching KV cached keys
+ * Just returns CORS headers - actual auth happens on the real request
  */
-export async function handleCors(request: Request, env: Env): Promise<Response> {
-	// Validate origin based on API key from headers
-	const apiKey = getApiKeyFromRequest(request)
-	if (!apiKey) {
-		logger.warn('CORS preflight missing API key', { origin: request.headers.get('Origin') })
-		return errorResponse('unauthorized', 'Missing Authorization header', 401)
+export async function handleCors(request: Request, _env: Env): Promise<Response> {
+	const origin = request.headers.get('Origin')
+
+	if (!origin) {
+		logger.warn('CORS preflight without Origin header')
+		return errorResponse('bad_request', 'Missing Origin header', 400)
 	}
 
-	const keyHash = await sha256Hex(apiKey)
-
-	const apiKeyData = await fetchCachedApiKey(keyHash, env)
-	if (!apiKeyData) {
-		logger.warn('CORS preflight with invalid API key', {
-			keyHashPreview: keyHash.substring(0, 8),
-			origin: request.headers.get('Origin')
-		})
-		return errorResponse('unauthorized', 'Invalid API key', 401)
-	}
-
-	const originValidation = validateOrigin(request, apiKeyData)
-
-	if (!originValidation.valid || !originValidation.origin) {
-		logger.warn('CORS origin not allowed', {
-			allowedDomains: apiKeyData.allowed_domains,
-			keyId: apiKeyData.id,
-			origin: request.headers.get('Origin'),
-			reason: originValidation.error
-		})
-		return errorResponse('not_allowed', 'Origin not allowed', 403)
-	}
-
+	// Allow preflight - validation happens on actual request
 	return new Response(null, {
-		headers: corsHeaders(originValidation.origin),
+		headers: corsHeaders(origin),
 		status: 204
 	})
 }

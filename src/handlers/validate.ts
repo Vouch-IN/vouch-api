@@ -42,7 +42,20 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			projectId: auth.projectId
 		})
 
-		// 2. Check rate limit based on key type
+		// 2. Validate origin for client keys
+		if (auth.apiKey.type === 'client') {
+			const originValidation = validateOrigin(request, auth.apiKey)
+			if (!originValidation.valid) {
+				requestLogger.warn('Origin validation failed', {
+					origin: request.headers.get('Origin'),
+					allowedDomains: auth.apiKey.allowed_domains,
+					reason: originValidation.error
+				})
+				return errorResponse('forbidden', originValidation.error ?? 'Origin not allowed', 403)
+			}
+		}
+
+		// 3. Check rate limit based on key type
 		const rate = await checkRateLimit(
 			auth.projectId,
 			auth.apiKey.type === 'client' ? 'client' : 'server',
@@ -59,7 +72,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			return errorResponse('rate_limited', 'Rate limit exceeded', 429, rateLimitHeaders)
 		}
 
-		// 3. Parse request body
+		// 4. Parse request body
 		const body: undefined | ValidationRequest = await request.json()
 
 		if (!body?.email || typeof body.email !== 'string') {
@@ -67,10 +80,10 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			return errorResponse('invalid_request', 'Missing or invalid email', 422)
 		}
 
-		// 4. Get project settings (from cache)
+		// 5. Get project settings (from cache)
 		const projectSettings = await getCachedData<ProjectSettings>(`project:${auth.projectId}`, env)
 
-		// 5. Check usage quota
+		// 6. Check usage quota
 		const usageCheck = await checkUsageQuota(auth.projectId, projectSettings?.entitlements, env)
 		if (!usageCheck.allowed) {
 			requestLogger.warn('Usage quota exceeded', {
@@ -85,32 +98,32 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			)
 		}
 
-		// 6. Determine which validations to run (merge project defaults with request overrides)
+		// 7. Determine which validations to run (merge project defaults with request overrides)
 		const enabledValidations = {
 			...DEFAULT_VALIDATIONS,
 			...projectSettings?.validations,
 			...body.validations
 		}
 
-		// 7. Load thresholds for risk scoring (merge project defaults with settings)
+		// 8. Load thresholds for risk scoring (merge project defaults with settings)
 		const thresholds = { ...DEFAULT_THRESHOLDS, ...projectSettings?.thresholds }
 
-		// 8. Load risk weights for scoring signals (merge project defaults with settings)
+		// 9. Load risk weights for scoring signals (merge project defaults with settings)
 		const riskWeights = { ...DEFAULT_RISK_WEIGHTS, ...projectSettings?.riskWeights }
 
-		// 9. Extract email from request body, fallback to null if not present
+		// 10. Extract email from request body, fallback to null if not present
 		const email = body.email.toLowerCase()
 
-		// 10. Extract fingerprint hash from request body, fallback to null if not present
+		// 11. Extract fingerprint hash from request body, fallback to null if not present
 		const fingerprintHash = body.fingerprint?.hash ?? null
 
-		// 11. Get the client IP from headers, check both Cloudflare and forwarded headers
+		// 12. Get the client IP from headers, check both Cloudflare and forwarded headers
 		const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')
 
-		// 12. Get ASN (Autonomous System Number) from Cloudflare request object if available
+		// 13. Get ASN (Autonomous System Number) from Cloudflare request object if available
 		const asn = request.cf?.asn
 
-		// 13. Run all enabled validations and get results including checks, previous signups and risk signals
+		// 14. Run all enabled validations and get results including checks, previous signups and risk signals
 		const validationResults = await runValidations(
 			auth.projectId,
 			email,
@@ -121,7 +134,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			env
 		)
 
-		// 14. Check whitelist/blacklist overrides
+		// 15. Check whitelist/blacklist overrides
 		const finalResults = applyOverrides(
 			validationResults,
 			email,
@@ -129,13 +142,13 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			projectSettings?.blacklist ?? []
 		)
 
-		// 15. Calculate overall risk score based on signals and configured risk weights
+		// 16. Calculate overall risk score based on signals and configured risk weights
 		const riskScore = calculateRiskScore(finalResults.signals, riskWeights)
 
-		// 16. Determine recommendation based on risk score and threshold settings
+		// 17. Determine recommendation based on risk score and threshold settings
 		const recommendation = determineRecommendation(riskScore, thresholds)
 
-		// 17. Determine if email is valid based on risk score threshold and syntax check
+		// 18. Determine if email is valid based on risk score threshold and syntax check
 		const isValid = riskScore < thresholds.flag && !finalResults.signals.includes('invalid_syntax')
 
 		// Log only problematic validations (blocked or flagged)
@@ -147,14 +160,14 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			})
 		}
 
-		// 18. Increment usage counter (Durable Object)
+		// 19. Increment usage counter (Durable Object)
 		await incrementUsage(auth.projectId, env)
 
-		// 19. Calculate total processing time for the request
+		// 20. Calculate total processing time for the request
 		// TODO: Move this to async process to reduce latency
 		const totalLatency = performance.now() - startedAt
 
-		// 20. Record validation log (async, non-blocking)
+		// 21. Record validation log (async, non-blocking)
 		recordValidationLog(
 			auth.projectId,
 			email,
@@ -170,7 +183,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			requestLogger.error('Failed to log validation', error)
 		})
 
-		// 21. Record metrics (Prometheus)
+		// 22. Record metrics (Prometheus)
 		recordMetric(env, 'vouch_validations_total', 1, {
 			project_id: auth.projectId,
 			result: recommendation
@@ -179,7 +192,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			project_id: auth.projectId
 		})
 
-		// 22. Update API key last_used_at (async, non-blocking)
+		// 23. Update API key last_used_at (async, non-blocking)
 		updateApiKeyLastUsed(auth.apiKey.id, env).catch((error: unknown) => {
 			requestLogger.error('Failed to update API key last_used_at', error)
 		})
