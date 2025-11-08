@@ -4,14 +4,14 @@ import { type Entitlements, type QuotaResult } from '../../types'
 
 export async function checkUsageQuota(
 	projectId: string,
-	entitlements: Entitlements,
+	entitlements: Entitlements | null | undefined,
 	env: Env
 ): Promise<QuotaResult> {
 	const currentMonth = new Date().toISOString().substring(0, 7)
 
 	const { count, resetAt } = await checkUsage({ month: currentMonth, projectId }, env)
 
-	const limit = entitlements.validationsLimit ?? FREE_VALIDATIONS_LIMIT
+	const limit = entitlements?.validationsLimit ?? FREE_VALIDATIONS_LIMIT
 
 	// Free: hard block
 	// TODO: Paid: soft block (check if within grace period)

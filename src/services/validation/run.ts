@@ -1,5 +1,6 @@
 import type { ValidationResults, ValidationToggles } from '../../types'
 import { ValidationAction } from '../../types'
+import { createLogger } from '../../utils'
 import { checkDeviceFingerprint } from '../device-validation'
 import {
 	checkDisposableEmail,
@@ -12,6 +13,8 @@ import {
 } from '../email-validation'
 import { checkIPReputation } from '../ip-validation'
 
+const logger = createLogger({ service: 'validation' })
+
 export async function runValidations(
 	projectId: string,
 	emailInput: string,
@@ -21,6 +24,12 @@ export async function runValidations(
 	asn: unknown,
 	env: Env
 ) {
+	const validationLogger = logger.child({ projectId })
+	validationLogger.debug('Starting validation checks', {
+		hasFingerprint: !!fingerprintHash,
+		hasIp: !!ip
+	})
+
 	const results: ValidationResults = {
 		checks: {},
 		deviceData: null,
@@ -38,8 +47,10 @@ export async function runValidations(
 	results.checks.syntax = { latency: performance.now() - syntaxStart, pass: syntaxValid }
 	if (!syntaxValid) {
 		results.signals.push('invalid_syntax')
+		validationLogger.info('Syntax validation failed', { signal: 'invalid_syntax' })
 		// Early return if syntax check fails and is set to BLOCK
 		if (enabledValidations.syntax === ValidationAction.BLOCK) {
+			validationLogger.debug('Early exit on syntax validation BLOCK')
 			return results
 		}
 	}
@@ -318,15 +329,24 @@ export async function runValidations(
 
 		if (hasBlockFailure) {
 			// A BLOCK validation failed - return immediately without waiting for FLAG validations
+			validationLogger.debug('Early exit on BLOCK validation failure', {
+				signalsCount: results.signals.length
+			})
 			return results
 		}
-		
+
 		// All BLOCK validations passed - now wait for any remaining FLAG validations to complete
 		await Promise.allSettled(allValidations)
 	} else {
 		// No BLOCK validations configured - just wait for all FLAG validations to complete
 		await Promise.allSettled(allValidations)
 	}
+
+	validationLogger.debug('Validation checks completed', {
+		signalsCount: results.signals.length,
+		signals: results.signals,
+		checksCount: Object.keys(results.checks).length
+	})
 
 	return results
 }

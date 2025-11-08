@@ -12,7 +12,9 @@ import { checkUsageQuota, incrementUsage, updateApiKeyLastUsed } from '../servic
 import { calculateRiskScore, determineRecommendation } from '../services/risk'
 import { applyOverrides, runValidations } from '../services/validation'
 import { type ProjectSettings, type ValidationRequest, type ValidationResponse } from '../types'
-import { errorResponse, getCachedData, jsonResponse, validateOrigin } from '../utils'
+import { createLogger, errorResponse, getCachedData, jsonResponse, validateOrigin } from '../utils'
+
+const logger = createLogger({ handler: 'validate' })
 
 export async function handleValidation(request: Request, env: Env): Promise<Response> {
 	const startedAt = performance.now()
@@ -23,6 +25,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		}
 
 		if (request.method !== 'POST') {
+			logger.warn('Invalid method used', { method: request.method })
 			return errorResponse('method_not_allowed', 'Only POST is allowed', 405)
 		}
 
@@ -31,6 +34,14 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		if (!auth.success || !auth.apiKey || !auth.projectId) {
 			return errorResponse('unauthorized', auth.error ?? 'Unauthorized', 401)
 		}
+
+		// Create request-scoped logger with context
+		const requestLogger = logger.child({
+			keyId: auth.apiKey.id,
+			keyType: auth.apiKey.type,
+			projectId: auth.projectId
+		})
+		requestLogger.info('Validation request received')
 
 		// 2. Check rate limit based on key type
 		const rate = await checkRateLimit(
@@ -45,6 +56,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		}
 
 		if (!rate.allowed) {
+			requestLogger.warn('Rate limit exceeded')
 			return errorResponse('rate_limited', 'Rate limit exceeded', 429, rateLimitHeaders)
 		}
 
@@ -52,6 +64,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		const body: undefined | ValidationRequest = await request.json()
 
 		if (!body?.email || typeof body.email !== 'string') {
+			requestLogger.warn('Invalid request body', { hasEmail: !!body?.email })
 			return errorResponse('invalid_request', 'Missing or invalid email', 422)
 		}
 
@@ -59,12 +72,12 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		const projectSettings = await getCachedData<ProjectSettings>(`project:${auth.projectId}`, env)
 
 		// 5. Check usage quota
-		const usageCheck = await checkUsageQuota(
-			auth.projectId,
-			projectSettings?.entitlements ?? {},
-			env
-		)
+		const usageCheck = await checkUsageQuota(auth.projectId, projectSettings?.entitlements, env)
 		if (!usageCheck.allowed) {
+			requestLogger.warn('Usage quota exceeded', {
+				current: usageCheck.current,
+				limit: usageCheck.limit
+			})
 			return errorResponse(
 				'quota_exceeded',
 				`You've used ${usageCheck.current} of ${usageCheck.limit} validations this month`,
@@ -99,6 +112,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		const asn = request.cf?.asn
 
 		// 13. Run all enabled validations and get results including checks, previous signups and risk signals
+		requestLogger.debug('Starting validation checks', { email, fingerprintHash, ip })
 		const validationResults = await runValidations(
 			auth.projectId,
 			email,
@@ -126,6 +140,13 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 		// 17. Determine if email is valid based on risk score threshold and syntax check
 		const isValid = riskScore < thresholds.flag && !finalResults.signals.includes('invalid_syntax')
 
+		requestLogger.info('Validation completed', {
+			isValid,
+			recommendation,
+			riskScore,
+			signalsCount: finalResults.signals.length
+		})
+
 		// 18. Increment usage counter (Durable Object)
 		await incrementUsage(auth.projectId, env)
 
@@ -146,7 +167,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			isValid,
 			env
 		).catch((error: unknown) => {
-			console.error('Failed to log validation:', error)
+			requestLogger.error('Failed to log validation', error)
 		})
 
 		// 21. Record metrics (Prometheus)
@@ -160,7 +181,7 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 
 		// 22. Update API key last_used_at (async, non-blocking)
 		updateApiKeyLastUsed(auth.apiKey.id, env).catch((error: unknown) => {
-			console.error('Failed to update key:', error)
+			requestLogger.error('Failed to update API key last_used_at', error)
 		})
 
 		const response: ValidationResponse = {

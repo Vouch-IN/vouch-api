@@ -13,11 +13,15 @@ import {
 	handleDebugSyncDomains
 } from './handlers/debug'
 import { handleError } from './middleware'
+import { createLogger } from './utils'
+
+const logger = createLogger({ service: 'worker' })
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		try {
 			const url = new URL(request.url)
+			logger.debug('Request received', { path: url.pathname, method: request.method })
 
 			// Health check (v1)
 			if (url.pathname === '/v1/health') {
@@ -82,26 +86,32 @@ export default {
 				}
 			}
 
+			logger.warn('Route not found', { path: url.pathname })
 			return new Response('Not found', { status: 404 })
 		} catch (error) {
 			return handleError(error)
 		}
 	},
 	async scheduled(controller: ScheduledController, env: Env): Promise<void> {
+		const cronLogger = logger.child({ cron: controller.cron })
 		try {
 			const cron = controller.cron
 
 			// Run log flush every hour
 			if (cron === '0 * * * *') {
+				cronLogger.info('Starting log flush cron job')
 				await flushAllLogQueues(env)
+				cronLogger.info('Log flush cron job completed')
 			}
 
 			// Run disposable domain sync daily at 2am UTC
 			if (cron === '0 2 * * *') {
+				cronLogger.info('Starting disposable domain sync cron job')
 				await syncDisposableDomains(env)
+				cronLogger.info('Disposable domain sync cron job completed')
 			}
 		} catch (error) {
-			console.error('Scheduled job failed:', error)
+			cronLogger.error('Scheduled job failed', error)
 		}
 	}
 }

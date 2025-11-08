@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 
 export default defineConfig(
 	{
-		ignores: ['**/node_modules/**', '**/dist/**', '**/.wrangler/**']
+		ignores: ['**/node_modules/**', '**/dist/**', '**/.wrangler/**', '**/supabase/**']
 	},
 	eslint.configs.recommended,
 	...tseslint.configs.strictTypeChecked,

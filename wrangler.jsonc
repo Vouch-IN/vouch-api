@@ -15,6 +15,41 @@
 			"0 2 * * *"
 		]
 	},
+	"kv_namespaces": [
+		{
+			"binding": "DISPOSABLE_DOMAINS",
+			"id": "81fe48b7331840fc85fd0389f48b4fca"
+		},
+		{
+			"binding": "MX_CACHE",
+			"id": "d4a6b986c6bd4d7b9d3f84c0fb4dd249"
+		},
+		{
+			"binding": "PROJECT_SETTINGS",
+			"id": "844a25c9b4ac4c558084a205d53d59a8"
+		},
+		{
+			"binding": "RATE_LIMITS",
+			"id": "3ff7b20860944678af5ac9700f4a49c5"
+		},
+		{
+			"binding": "FINGERPRINTS",
+			"id": "8933f1c0d3f940bdb913c65e98cb8a3e"
+		},
+		{
+			"binding": "LOG_QUEUE",
+			"id": "60041df9693e48c093358b512c52f705"
+		},
+		{
+			"binding": "USAGE_COUNTER",
+			"id": "3adad7c5e7c642b0931c2b64594b210f"
+		},
+		{
+			"binding": "ROLE_EMAILS",
+			"id": "963a3852a403470dbfead9c3dd6d1b39",
+			"remote": true
+		}
+	],
 	"env": {
 		"production": {
 			"name": "vouch-api-production",
