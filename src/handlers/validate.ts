@@ -14,7 +14,7 @@ import { applyOverrides, runValidations } from '../services/validation'
 import { type ProjectSettings, type ValidationRequest, type ValidationResponse } from '../types'
 import { createLogger, errorResponse, getCachedData, jsonResponse, validateOrigin } from '../utils'
 
-const requestLogger = createLogger({ handler: 'validate' })
+const logger = createLogger({ handler: 'validate' })
 
 export async function handleValidation(
 	request: Request,
@@ -29,7 +29,7 @@ export async function handleValidation(
 		}
 
 		if (request.method !== 'POST') {
-			requestLogger.warn('Invalid method used', { method: request.method })
+			logger.warn('Invalid method used', { method: request.method })
 			return errorResponse('method_not_allowed', 'Only POST is allowed', 405)
 		}
 
@@ -37,7 +37,7 @@ export async function handleValidation(
 		const body: undefined | ValidationRequest = await request.json()
 
 		if (!body?.email || typeof body.email !== 'string') {
-			requestLogger.warn('Invalid request body', { hasEmail: !!body?.email })
+			logger.warn('Invalid request body', { hasEmail: !!body?.email })
 			return errorResponse('invalid_request', 'Missing or invalid email', 422)
 		}
 
@@ -45,7 +45,7 @@ export async function handleValidation(
 		const projectId = request.headers.get('x-project-id')
 
 		if (!projectId || typeof projectId !== 'string') {
-			requestLogger.warn('Invalid request body', { hasProjectId: !!projectId })
+			logger.warn('Invalid request body', { hasProjectId: !!projectId })
 			return errorResponse('invalid_request', 'Missing or invalid project id', 422)
 		}
 
