@@ -1,5 +1,6 @@
 import type { ValidationResults, ValidationToggles } from '../../types'
 import { ValidationAction } from '../../types'
+import { createLogger } from '../../utils'
 import { checkDeviceFingerprint } from '../device-validation'
 import {
 	checkDisposableEmail,
@@ -11,6 +12,8 @@ import {
 	verifySMTP
 } from '../email-validation'
 import { checkIPReputation } from '../ip-validation'
+
+const logger = createLogger({ service: 'validation' })
 
 export async function runValidations(
 	projectId: string,
@@ -321,7 +324,7 @@ export async function runValidations(
 			// A BLOCK validation failed - return immediately without waiting for FLAG validations
 			return results
 		}
-		
+
 		// All BLOCK validations passed - now wait for any remaining FLAG validations to complete
 		await Promise.allSettled(allValidations)
 	} else {

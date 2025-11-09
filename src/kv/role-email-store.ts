@@ -8,6 +8,19 @@
  */
 
 /**
+ * Add a role email address to KV
+ */
+export async function addRoleEmail(env: Env, localPart: string): Promise<void> {
+	const normalized = localPart.toLowerCase().trim()
+	await env.ROLE_EMAILS.put(normalized, '1', {
+		metadata: {
+			addedAt: new Date().toISOString()
+		}
+	})
+	console.log(`Added role email to KV: ${normalized}`)
+}
+
+/**
  * Get all role email addresses from KV (for admin/debug endpoints only)
  * Note: Validation does NOT call this - it uses direct get() check
  */
@@ -19,19 +32,6 @@ export async function getRoleEmails(env: Env): Promise<string[]> {
 		console.error('Failed to list role emails from KV:', error)
 		return []
 	}
-}
-
-/**
- * Add a role email address to KV
- */
-export async function addRoleEmail(env: Env, localPart: string): Promise<void> {
-	const normalized = localPart.toLowerCase().trim()
-	await env.ROLE_EMAILS.put(normalized, '1', {
-		metadata: {
-			addedAt: new Date().toISOString()
-		}
-	})
-	console.log(`Added role email to KV: ${normalized}`)
 }
 
 /**

@@ -2,54 +2,58 @@ import { DEFAULT_RISK_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_VALIDATIONS } from '.
 import { createClient } from '../lib/supabase'
 import { handleError } from '../middleware'
 import { type ProjectSettings, type Tables } from '../types'
-import { errorResponse } from '../utils'
+import { createLogger, errorResponse } from '../utils'
+
+const logger = createLogger({ service: 'webhook' })
 
 type ApiKeyPayload = WebhookPayload<Tables<'api_keys'>>
 
 type ProjectPayload = WebhookPayload<Tables<'projects'>>
 
 type WebhookPayload<T = unknown> = {
-	old_record: T
-	record: T
-	schema: string
+	new_row: T
+	old_row: T
+	operation: 'DELETE' | 'INSERT' | 'UPDATE'
 	table: string
-	type: 'DELETE' | 'INSERT' | 'UPDATE'
+	timestamp: string
 }
 
 export async function handleWebhook(request: Request, env: Env): Promise<Response> {
 	// Verify webhook secret for security
 	const webhookSecret = request.headers.get('x-webhook-token')
 	if (webhookSecret !== env.WEBHOOK_SECRET) {
+		logger.warn('Unauthorized webhook request - invalid secret')
 		return errorResponse('unauthorized', 'Unauthorized', 401)
 	}
 
 	const payload: ApiKeyPayload | WebhookPayload = await request.json()
-	const { table, type } = payload
+	const { operation, table } = payload
 
 	try {
 		if (table === 'api_keys') {
-			await handleApiKeyChange(payload as ApiKeyPayload, type, env)
+			await handleApiKeyChange(payload as ApiKeyPayload, operation, env)
 		} else if (table === 'projects') {
-			await handleProjectChange(payload as ProjectPayload, type, env)
+			await handleProjectChange(payload as ProjectPayload, operation, env)
+		} else {
+			logger.warn('Unknown table in webhook', { table })
 		}
 
 		return Response.json({ success: true })
 	} catch (error) {
-		console.error('Webhook processing error:', error)
+		logger.error('Webhook processing failed', error, { operation, table })
 		return handleError(error)
 	}
 }
 
 async function handleApiKeyChange(
 	payload: ApiKeyPayload,
-	type: 'DELETE' | 'INSERT' | 'UPDATE',
+	operation: 'DELETE' | 'INSERT' | 'UPDATE',
 	env: Env
 ): Promise<void> {
-	const apiKey = type === 'DELETE' ? payload.old_record : payload.record
-
+	const apiKey = operation === 'DELETE' ? payload.old_row : payload.new_row
 	const cacheKey = `apikey:${apiKey.key_hash}`
 
-	if (type === 'DELETE' || apiKey.revoked_at) {
+	if (operation === 'DELETE') {
 		// Remove from cache if deleted or revoked
 		await env.PROJECT_SETTINGS.delete(cacheKey)
 	} else {
@@ -60,17 +64,13 @@ async function handleApiKeyChange(
 
 async function handleProjectChange(
 	payload: ProjectPayload,
-	type: 'DELETE' | 'INSERT' | 'UPDATE',
+	operation: 'DELETE' | 'INSERT' | 'UPDATE',
 	env: Env
 ): Promise<void> {
-	const project = type === 'DELETE' ? payload.old_record : payload.record
-
+	const project = operation === 'DELETE' ? payload.old_row : payload.new_row
 	const cacheKey = `project:${project.id}`
 
-	console.log('Project Request: ')
-	console.log(project)
-
-	if (type === 'DELETE') {
+	if (operation === 'DELETE') {
 		// Remove from cache if deleted
 		await env.PROJECT_SETTINGS.delete(cacheKey)
 	} else {
@@ -82,6 +82,7 @@ async function handleProjectChange(
 				`
     *,
     subscription:stripe_subscriptions!inner(
+    	interval,
       status,
       current_period_start,
       current_period_end
@@ -99,14 +100,8 @@ async function handleProjectChange(
 			.eq('id', project.id)
 			.maybeSingle()
 
-		console.log('Project Response:')
-		console.log(data)
-
-		console.log('Project Error:')
-		console.log(error)
-
 		if (error ?? !data) {
-			console.error('Failed to fetch project:', error)
+			logger.error('Failed to fetch project data from webhook', error, { projectId: project.id })
 			return
 		}
 
@@ -140,7 +135,7 @@ async function handleProjectChange(
 			},
 			subscription: subscription
 				? {
-						billingCycle: 'monthly' as const, // Derive from subscription interval if needed
+						billingCycle: subscription.interval,
 						currentPeriodEnd: subscription.current_period_end,
 						currentPeriodStart: subscription.current_period_start,
 						status: subscription.status

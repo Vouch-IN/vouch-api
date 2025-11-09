@@ -14,9 +14,12 @@ import {
 	handleDebugSyncIPLists
 } from './handlers/debug'
 import { handleError } from './middleware'
+import { createLogger } from './utils'
+
+const logger = createLogger({ service: 'worker' })
 
 export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		try {
 			const url = new URL(request.url)
 
@@ -42,12 +45,12 @@ export default {
 
 			// Main validation endpoint (v1)
 			if (url.pathname === '/v1/validate') {
-				return await handleValidation(request, env)
+				return await handleValidation(request, env, ctx)
 			}
 
 			// Main validation endpoint (always latest version)
 			if (url.pathname === '/validate') {
-				return await handleValidation(request, env)
+				return await handleValidation(request, env, ctx)
 			}
 
 			if (env.ENVIRONMENT === 'development') {
@@ -86,6 +89,7 @@ export default {
 				}
 			}
 
+			logger.warn('Route not found', { path: url.pathname })
 			return new Response('Not found', { status: 404 })
 		} catch (error) {
 			return handleError(error)
@@ -110,7 +114,7 @@ export default {
 				await syncIPLists(env)
 			}
 		} catch (error) {
-			console.error('Scheduled job failed:', error)
+			logger.error('Scheduled job failed', error, { cron: controller.cron })
 		}
 	}
 }

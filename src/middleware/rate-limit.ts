@@ -1,5 +1,8 @@
 import { CLIENT_RATE_LIMIT, SERVER_RATE_LIMIT, WINDOW_MS } from '../constants'
 import type { RateLimitResult } from '../types'
+import { createLogger } from '../utils'
+
+const logger = createLogger({ middleware: 'rateLimit' })
 
 export async function checkRateLimit(
 	projectId: string,
@@ -15,6 +18,7 @@ export async function checkRateLimit(
 	const limit = keyType === 'client' ? CLIENT_RATE_LIMIT : SERVER_RATE_LIMIT
 
 	if (currentCount >= limit) {
+		logger.warn('Rate limit exceeded', { currentCount, keyType, limit, projectId })
 		return {
 			allowed: false,
 			limit,
