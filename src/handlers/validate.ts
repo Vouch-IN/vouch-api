@@ -74,7 +74,7 @@ export async function handleValidation(
 
 		// Check rate limit based on key type and Check usage quota
 		const [rate, usageCheck] = await Promise.all([
-			checkRateLimit(auth.projectId, auth.apiKey.type === 'client' ? 'client' : 'server', env),
+			checkRateLimit(auth.projectId, auth.apiKey.type === 'client' ? 'client' : 'server', env, ctx),
 			checkUsageQuota(auth.projectId, projectSettings?.entitlements, env)
 		])
 
