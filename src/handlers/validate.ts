@@ -56,11 +56,13 @@ export async function handleValidation(
 		])
 
 		if (!auth.success || !auth.apiKey || !auth.projectId) {
+			requestLogger.warn(auth.error ?? 'Unauthorized')
 			return errorResponse('unauthorized', auth.error ?? 'Unauthorized', 401)
 		}
 
-		if (auth.projectId !== projectId) {
-			return errorResponse('unauthorized', 'Invalid project id', 401)
+		if (auth.projectId !== projectSettings.projectId) {
+			requestLogger.warn('Invalid Project Id')
+			return errorResponse('unauthorized', 'Invalid Project Id', 401)
 		}
 
 		// Create request-scoped logger with context

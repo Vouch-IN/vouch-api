@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development
+
 ```bash
 # Run the Worker in dev mode (with hot reload)
 pnpm dev
@@ -13,6 +14,7 @@ wrangler dev
 ```
 
 ### Type Generation
+
 ```bash
 # Generate all types (Cloudflare + Database)
 pnpm types
@@ -25,6 +27,7 @@ pnpm types:db
 ```
 
 ### Code Quality
+
 ```bash
 # Type check (no emit)
 pnpm type-check
@@ -49,6 +52,7 @@ pnpm fix
 ```
 
 ### Deployment
+
 ```bash
 # Deploy to development environment
 wrangler deploy --env development
@@ -60,6 +64,7 @@ wrangler deploy --env production
 ```
 
 ### Supabase
+
 ```bash
 # Start local Supabase stack
 supabase start
@@ -74,9 +79,36 @@ supabase functions serve stripe-webhook --no-verify-jwt
 supabase functions deploy stripe-webhook --no-verify-jwt
 ```
 
+### Local Development Setup
+
+To set up your local Cloudflare Workers environment with data from your remote Supabase project:
+
+1. **Configure `.dev.vars`** with your Supabase credentials:
+
+   ```bash
+   SUPABASE_URL=https://jdgcsdazjypgabvkiwky.supabase.co
+   SUPABASE_KEY=your-service-role-key
+   ENVIRONMENT=development
+   ```
+
+2. **Start Wrangler dev server** (creates local KV namespaces):
+
+   ```bash
+   pnpm dev
+   ```
+
+3. **Sync remote Supabase data to local KV** (in another terminal):
+
+   ```bash
+   pnpm sync-kv
+   ```
+
+   This script reads all projects and API keys from your remote Supabase and calls the local webhook endpoint to populate your local KV cache.
+
 ## Architecture
 
 ### Tech Stack
+
 - **Runtime**: Cloudflare Workers (edge compute)
 - **Language**: TypeScript with strict mode
 - **Database**: Supabase (Postgres)
@@ -85,6 +117,7 @@ supabase functions deploy stripe-webhook --no-verify-jwt
 - **Cron Jobs**: Cloudflare Workers scheduled tasks
 
 ### Request Flow
+
 1. **Entry Point** (`src/index.ts`): Main Worker fetch handler with simple path-based routing
 2. **Middleware** (`src/middleware/`): Authentication, CORS, rate limiting, error handling
 3. **Handlers** (`src/handlers/`): Route-specific request handling (validate, webhook, health, debug)
@@ -122,6 +155,7 @@ All validation checks implement parallel execution with early-exit for BLOCK act
 ### Validation Strategy: Smart Early Exit
 
 The validation pipeline (`src/services/validation/run.ts:61-329`) implements an optimization strategy:
+
 - All validations (both BLOCK and FLAG) start executing **immediately in parallel**
 - BLOCK validations use `Promise.race()` to return as soon as **any** BLOCK check fails
 - If all BLOCK validations pass, waits for all FLAG validations to complete
@@ -143,12 +177,14 @@ Each environment (development/production) has separate KV namespaces:
 ### Cron Jobs (`src/crons/`)
 
 Configured in `wrangler.jsonc` triggers:
+
 - **Hourly** (`0 * * * *`): Flush log queue to Supabase (`flush-log-queue.ts`)
 - **Daily at 2am UTC** (`0 2 * * *`): Sync disposable domains list (`sync-disposable-domains.ts`)
 
 ### Database Schema
 
 Supabase migrations in `supabase/migrations/` define:
+
 - **users**: User accounts
 - **projects**: Project/workspace containers
 - **project_members**: Team membership
@@ -169,6 +205,7 @@ Supabase migrations in `supabase/migrations/` define:
 ### Debug Endpoints
 
 Available **only in development** environment (`env.ENVIRONMENT === 'development'`):
+
 - `/debug/kv/list`: List KV namespace keys
 - `/debug/kv/get`: Get KV value
 - `/debug/kv/delete`: Delete KV key
@@ -180,23 +217,28 @@ Available **only in development** environment (`env.ENVIRONMENT === 'development
 ## Important Patterns
 
 ### API Key Security
+
 - Server keys (`type: 'server'`) are blocked from browsers (detected via Origin, Referer, User-Agent headers in `src/middleware/auth.ts:34-56`)
 - Client keys (`type: 'client'`) require origin validation against allowed domains
 - Keys are hashed with SHA-256 before lookup (`src/utils/auth.ts`)
 
 ### Caching Strategy
+
 - Project settings cached in KV (`PROJECT_SETTINGS`) to avoid DB lookups on hot path
 - MX records cached with TTL to reduce DNS queries
 - API keys cached after first lookup
 - Cache utilities in `src/utils/cache.ts`
 
 ### Error Handling
+
 - All validation checks wrap errors and return `pass: true` with error metadata to avoid blocking on transient failures
 - Global error handler in `src/middleware/error-handler.ts`
 - Async operations (logging, metrics) use `.catch()` to prevent request failures
 
 ### Environment Variables
+
 Required Worker secrets (set via `wrangler secret put`):
+
 - `SUPABASE_URL`: Supabase project URL
 - `SUPABASE_KEY`: Supabase service role key
 - `ENVIRONMENT`: `development` or `production` (controls debug endpoints)
