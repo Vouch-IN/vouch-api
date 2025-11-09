@@ -169,7 +169,6 @@ export async function handleValidation(
 		ctx.waitUntil(incrementUsage(auth.projectId, env))
 
 		// 20. Calculate total processing time for the request
-		// TODO: Move this to async process to reduce latency
 		const totalLatency = performance.now() - startedAt
 
 		// 21. Record validation log (async, non-blocking)

@@ -1,19 +1,4 @@
-export type CompositeTypes<
-	PublicCompositeTypeNameOrOptions extends
-		| keyof DefaultSchema['CompositeTypes']
-		| { schema: keyof DatabaseWithoutInternals },
-	CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-		schema: keyof DatabaseWithoutInternals
-	}
-		? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
-		: never = never
-> = PublicCompositeTypeNameOrOptions extends {
-	schema: keyof DatabaseWithoutInternals
-}
-	? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-	: PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-		? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
-		: never
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
 	// Allows to automatically instantiate createClient with right options
@@ -22,8 +7,632 @@ export type Database = {
 		PostgrestVersion: '13.0.5'
 	}
 	public: {
-		CompositeTypes: Record<never, never>
-		Enums: Record<never, never>
+		Tables: {
+			api_keys: {
+				Row: {
+					allowed_domains: string[] | null
+					created_at: string
+					environment: string
+					id: string
+					key_hash: string
+					key_value: string | null
+					last_used_at: string | null
+					name: string | null
+					project_id: string
+					type: string
+				}
+				Insert: {
+					allowed_domains?: string[] | null
+					created_at?: string
+					environment: string
+					id?: string
+					key_hash: string
+					key_value?: string | null
+					last_used_at?: string | null
+					name?: string | null
+					project_id: string
+					type: string
+				}
+				Update: {
+					allowed_domains?: string[] | null
+					created_at?: string
+					environment?: string
+					id?: string
+					key_hash?: string
+					key_value?: string | null
+					last_used_at?: string | null
+					name?: string | null
+					project_id?: string
+					type?: string
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'api_keys_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'api_keys_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
+						referencedColumns: ['id']
+					}
+				]
+			}
+			disposable_domain_sync_log: {
+				Row: {
+					added_domains: string[] | null
+					domains_added: number
+					domains_removed: number
+					error_message: string | null
+					id: string
+					removed_domains: string[] | null
+					sources: string[]
+					success: boolean
+					synced_at: string | null
+					total_domains: number
+				}
+				Insert: {
+					added_domains?: string[] | null
+					domains_added: number
+					domains_removed: number
+					error_message?: string | null
+					id?: string
+					removed_domains?: string[] | null
+					sources: string[]
+					success: boolean
+					synced_at?: string | null
+					total_domains: number
+				}
+				Update: {
+					added_domains?: string[] | null
+					domains_added?: number
+					domains_removed?: number
+					error_message?: string | null
+					id?: string
+					removed_domains?: string[] | null
+					sources?: string[]
+					success?: boolean
+					synced_at?: string | null
+					total_domains?: number
+				}
+				Relationships: []
+			}
+			entitlements: {
+				Row: {
+					created_at: string
+					ends_at: string | null
+					features: string[]
+					id: string
+					log_retention_days: number
+					project_id: string | null
+					source: string
+					starts_at: string | null
+					team_limit: number
+					updated_at: string
+					validations_limit: number
+				}
+				Insert: {
+					created_at?: string
+					ends_at?: string | null
+					features: string[]
+					id?: string
+					log_retention_days: number
+					project_id?: string | null
+					source: string
+					starts_at?: string | null
+					team_limit?: number
+					updated_at?: string
+					validations_limit: number
+				}
+				Update: {
+					created_at?: string
+					ends_at?: string | null
+					features?: string[]
+					id?: string
+					log_retention_days?: number
+					project_id?: string | null
+					source?: string
+					starts_at?: string | null
+					team_limit?: number
+					updated_at?: string
+					validations_limit?: number
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'entitlements_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'entitlements_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
+						referencedColumns: ['id']
+					}
+				]
+			}
+			project_members: {
+				Row: {
+					accepted_at: string | null
+					created_at: string
+					project_id: string
+					role: string
+					updated_at: string
+					user_id: string
+				}
+				Insert: {
+					accepted_at?: string | null
+					created_at?: string
+					project_id: string
+					role: string
+					updated_at?: string
+					user_id: string
+				}
+				Update: {
+					accepted_at?: string | null
+					created_at?: string
+					project_id?: string
+					role?: string
+					updated_at?: string
+					user_id?: string
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'project_members_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'project_members_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
+						referencedColumns: ['id']
+					},
+					{
+						foreignKeyName: 'project_members_user_id_fkey'
+						columns: ['user_id']
+						isOneToOne: false
+						referencedRelation: 'users'
+						referencedColumns: ['id']
+					}
+				]
+			}
+			projects: {
+				Row: {
+					created_at: string
+					deleted_at: string | null
+					id: string
+					name: string
+					owner_id: string
+					settings: Json
+					slug: string
+					stripe_customer_id: string | null
+					updated_at: string
+				}
+				Insert: {
+					created_at?: string
+					deleted_at?: string | null
+					id?: string
+					name: string
+					owner_id: string
+					settings?: Json
+					slug: string
+					stripe_customer_id?: string | null
+					updated_at?: string
+				}
+				Update: {
+					created_at?: string
+					deleted_at?: string | null
+					id?: string
+					name?: string
+					owner_id?: string
+					settings?: Json
+					slug?: string
+					stripe_customer_id?: string | null
+					updated_at?: string
+				}
+				Relationships: []
+			}
+			stripe_prices: {
+				Row: {
+					active: boolean
+					created_at: string
+					currency: string
+					deleted_at: string | null
+					id: string
+					lookup_key: string
+					metadata: Json | null
+					nickname: string | null
+					product_id: string
+					recurring_interval: string | null
+					recurring_interval_count: number | null
+					type: string
+					unit_amount: number | null
+					updated_at: string
+				}
+				Insert: {
+					active?: boolean
+					created_at?: string
+					currency: string
+					deleted_at?: string | null
+					id: string
+					lookup_key: string
+					metadata?: Json | null
+					nickname?: string | null
+					product_id: string
+					recurring_interval?: string | null
+					recurring_interval_count?: number | null
+					type: string
+					unit_amount?: number | null
+					updated_at?: string
+				}
+				Update: {
+					active?: boolean
+					created_at?: string
+					currency?: string
+					deleted_at?: string | null
+					id?: string
+					lookup_key?: string
+					metadata?: Json | null
+					nickname?: string | null
+					product_id?: string
+					recurring_interval?: string | null
+					recurring_interval_count?: number | null
+					type?: string
+					unit_amount?: number | null
+					updated_at?: string
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'stripe_prices_product_id_fkey'
+						columns: ['product_id']
+						isOneToOne: false
+						referencedRelation: 'stripe_products'
+						referencedColumns: ['id']
+					}
+				]
+			}
+			stripe_products: {
+				Row: {
+					active: boolean
+					created_at: string
+					deleted_at: string | null
+					description: string | null
+					entitlements: Json | null
+					id: string
+					marketing_features: string[] | null
+					metadata: Json | null
+					name: string
+					updated_at: string
+				}
+				Insert: {
+					active?: boolean
+					created_at?: string
+					deleted_at?: string | null
+					description?: string | null
+					entitlements?: Json | null
+					id: string
+					marketing_features?: string[] | null
+					metadata?: Json | null
+					name: string
+					updated_at?: string
+				}
+				Update: {
+					active?: boolean
+					created_at?: string
+					deleted_at?: string | null
+					description?: string | null
+					entitlements?: Json | null
+					id?: string
+					marketing_features?: string[] | null
+					metadata?: Json | null
+					name?: string
+					updated_at?: string
+				}
+				Relationships: []
+			}
+			stripe_subscriptions: {
+				Row: {
+					amount: number
+					cancel_at: string | null
+					cancel_at_period_end: boolean
+					canceled_at: string | null
+					created_at: string
+					currency: string
+					current_period_end: string | null
+					current_period_start: string | null
+					deleted_at: string | null
+					entitlement_id: string | null
+					id: string
+					interval: string | null
+					interval_count: number | null
+					price_id: string | null
+					product_id: string | null
+					product_name: string | null
+					project_id: string | null
+					status: string
+					trial_end: string | null
+					trial_start: string | null
+					updated_at: string
+				}
+				Insert: {
+					amount: number
+					cancel_at?: string | null
+					cancel_at_period_end?: boolean
+					canceled_at?: string | null
+					created_at?: string
+					currency: string
+					current_period_end?: string | null
+					current_period_start?: string | null
+					deleted_at?: string | null
+					entitlement_id?: string | null
+					id: string
+					interval?: string | null
+					interval_count?: number | null
+					price_id?: string | null
+					product_id?: string | null
+					product_name?: string | null
+					project_id?: string | null
+					status: string
+					trial_end?: string | null
+					trial_start?: string | null
+					updated_at?: string
+				}
+				Update: {
+					amount?: number
+					cancel_at?: string | null
+					cancel_at_period_end?: boolean
+					canceled_at?: string | null
+					created_at?: string
+					currency?: string
+					current_period_end?: string | null
+					current_period_start?: string | null
+					deleted_at?: string | null
+					entitlement_id?: string | null
+					id?: string
+					interval?: string | null
+					interval_count?: number | null
+					price_id?: string | null
+					product_id?: string | null
+					product_name?: string | null
+					project_id?: string | null
+					status?: string
+					trial_end?: string | null
+					trial_start?: string | null
+					updated_at?: string
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'stripe_subscriptions_entitlement_id_fkey'
+						columns: ['entitlement_id']
+						isOneToOne: false
+						referencedRelation: 'entitlements'
+						referencedColumns: ['id']
+					},
+					{
+						foreignKeyName: 'stripe_subscriptions_price_id_fkey'
+						columns: ['price_id']
+						isOneToOne: false
+						referencedRelation: 'stripe_prices'
+						referencedColumns: ['id']
+					},
+					{
+						foreignKeyName: 'stripe_subscriptions_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'stripe_subscriptions_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
+						referencedColumns: ['id']
+					}
+				]
+			}
+			usage: {
+				Row: {
+					count: number
+					id: string
+					limit_exceeded_at: string | null
+					month: string
+					project_id: string | null
+					updated_at: string
+				}
+				Insert: {
+					count?: number
+					id?: string
+					limit_exceeded_at?: string | null
+					month: string
+					project_id?: string | null
+					updated_at?: string
+				}
+				Update: {
+					count?: number
+					id?: string
+					limit_exceeded_at?: string | null
+					month?: string
+					project_id?: string | null
+					updated_at?: string
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'usage_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'usage_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
+						referencedColumns: ['id']
+					}
+				]
+			}
+			users: {
+				Row: {
+					avatar_url: string | null
+					created_at: string
+					deleted_at: string | null
+					email: string
+					id: string
+					is_superadmin: boolean
+					name: string | null
+					updated_at: string
+				}
+				Insert: {
+					avatar_url?: string | null
+					created_at?: string
+					deleted_at?: string | null
+					email: string
+					id: string
+					is_superadmin?: boolean
+					name?: string | null
+					updated_at?: string
+				}
+				Update: {
+					avatar_url?: string | null
+					created_at?: string
+					deleted_at?: string | null
+					email?: string
+					id?: string
+					is_superadmin?: boolean
+					name?: string | null
+					updated_at?: string
+				}
+				Relationships: []
+			}
+			validation_logs: {
+				Row: {
+					checks: Json
+					created_at: string
+					email_encrypted: string
+					email_hash: string
+					fingerprint_id: string | null
+					id: string
+					ip_address: unknown
+					is_valid: boolean
+					latency_ms: number | null
+					project_id: string | null
+					recommendation: string
+					risk_score: number
+					signals: string[]
+				}
+				Insert: {
+					checks: Json
+					created_at?: string
+					email_encrypted: string
+					email_hash: string
+					fingerprint_id?: string | null
+					id?: string
+					ip_address?: unknown
+					is_valid: boolean
+					latency_ms?: number | null
+					project_id?: string | null
+					recommendation: string
+					risk_score: number
+					signals?: string[]
+				}
+				Update: {
+					checks?: Json
+					created_at?: string
+					email_encrypted?: string
+					email_hash?: string
+					fingerprint_id?: string | null
+					id?: string
+					ip_address?: unknown
+					is_valid?: boolean
+					latency_ms?: number | null
+					project_id?: string | null
+					recommendation?: string
+					risk_score?: number
+					signals?: string[]
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'validation_logs_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'validation_logs_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
+						referencedColumns: ['id']
+					}
+				]
+			}
+		}
+		Views: {
+			active_entitlements: {
+				Row: {
+					features: string[] | null
+					first_entitlement_start: string | null
+					is_active: boolean | null
+					last_refreshed: string | null
+					latest_entitlement_end: string | null
+					log_retention_days: number | null
+					owner_id: string | null
+					project_id: string | null
+					project_name: string | null
+					project_slug: string | null
+					sources: string[] | null
+					subscription_info: Json | null
+					team_limit: number | null
+					validations_limit: number | null
+				}
+				Relationships: []
+			}
+			validation_logs_daily: {
+				Row: {
+					approved: number | null
+					avg_latency_ms: number | null
+					avg_risk_score: number | null
+					count: number | null
+					date: string | null
+					failed: number | null
+					first_validation: string | null
+					last_refreshed: string | null
+					last_validation: string | null
+					project_id: string | null
+					rejected: number | null
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'validation_logs_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'active_entitlements'
+						referencedColumns: ['project_id']
+					},
+					{
+						foreignKeyName: 'validation_logs_project_id_fkey'
+						columns: ['project_id']
+						isOneToOne: false
+						referencedRelation: 'projects'
+						referencedColumns: ['id']
+					}
+				]
+			}
+		}
 		Functions: {
 			can_manage_project: {
 				Args: { project_id_param: string }
@@ -109,653 +718,18 @@ export type Database = {
 			is_superadmin: { Args: never; Returns: boolean }
 			refresh_validation_logs_daily: { Args: never; Returns: undefined }
 		}
-		Tables: {
-			api_keys: {
-				Insert: {
-					allowed_domains?: null | string[]
-					created_at?: string
-					environment: string
-					id?: string
-					key_hash: string
-					key_value?: null | string
-					last_used_at?: null | string
-					name?: null | string
-					project_id: string
-					type: string
-				}
-				Relationships: [
-					{
-						columns: ['project_id']
-						foreignKeyName: 'api_keys_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['project_id']
-						referencedRelation: 'active_entitlements'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'api_keys_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'projects'
-					}
-				]
-				Row: {
-					allowed_domains: null | string[]
-					created_at: string
-					environment: string
-					id: string
-					key_hash: string
-					key_value: null | string
-					last_used_at: null | string
-					name: null | string
-					project_id: string
-					type: string
-				}
-				Update: {
-					allowed_domains?: null | string[]
-					created_at?: string
-					environment?: string
-					id?: string
-					key_hash?: string
-					key_value?: null | string
-					last_used_at?: null | string
-					name?: null | string
-					project_id?: string
-					type?: string
-				}
-			}
-			disposable_domain_sync_log: {
-				Insert: {
-					added_domains?: null | string[]
-					domains_added: number
-					domains_removed: number
-					error_message?: null | string
-					id?: string
-					removed_domains?: null | string[]
-					sources: string[]
-					success: boolean
-					synced_at?: null | string
-					total_domains: number
-				}
-				Relationships: []
-				Row: {
-					added_domains: null | string[]
-					domains_added: number
-					domains_removed: number
-					error_message: null | string
-					id: string
-					removed_domains: null | string[]
-					sources: string[]
-					success: boolean
-					synced_at: null | string
-					total_domains: number
-				}
-				Update: {
-					added_domains?: null | string[]
-					domains_added?: number
-					domains_removed?: number
-					error_message?: null | string
-					id?: string
-					removed_domains?: null | string[]
-					sources?: string[]
-					success?: boolean
-					synced_at?: null | string
-					total_domains?: number
-				}
-			}
-			entitlements: {
-				Insert: {
-					created_at?: string
-					ends_at?: null | string
-					features: string[]
-					id?: string
-					log_retention_days: number
-					project_id?: null | string
-					source: string
-					starts_at?: null | string
-					team_limit?: number
-					updated_at?: string
-					validations_limit: number
-				}
-				Relationships: [
-					{
-						columns: ['project_id']
-						foreignKeyName: 'entitlements_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['project_id']
-						referencedRelation: 'active_entitlements'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'entitlements_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'projects'
-					}
-				]
-				Row: {
-					created_at: string
-					ends_at: null | string
-					features: string[]
-					id: string
-					log_retention_days: number
-					project_id: null | string
-					source: string
-					starts_at: null | string
-					team_limit: number
-					updated_at: string
-					validations_limit: number
-				}
-				Update: {
-					created_at?: string
-					ends_at?: null | string
-					features?: string[]
-					id?: string
-					log_retention_days?: number
-					project_id?: null | string
-					source?: string
-					starts_at?: null | string
-					team_limit?: number
-					updated_at?: string
-					validations_limit?: number
-				}
-			}
-			project_members: {
-				Insert: {
-					accepted_at?: null | string
-					created_at?: string
-					project_id: string
-					role: string
-					updated_at?: string
-					user_id: string
-				}
-				Relationships: [
-					{
-						columns: ['project_id']
-						foreignKeyName: 'project_members_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['project_id']
-						referencedRelation: 'active_entitlements'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'project_members_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'projects'
-					},
-					{
-						columns: ['user_id']
-						foreignKeyName: 'project_members_user_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'users'
-					}
-				]
-				Row: {
-					accepted_at: null | string
-					created_at: string
-					project_id: string
-					role: string
-					updated_at: string
-					user_id: string
-				}
-				Update: {
-					accepted_at?: null | string
-					created_at?: string
-					project_id?: string
-					role?: string
-					updated_at?: string
-					user_id?: string
-				}
-			}
-			projects: {
-				Insert: {
-					created_at?: string
-					deleted_at?: null | string
-					id?: string
-					name: string
-					owner_id: string
-					settings?: Json
-					slug: string
-					stripe_customer_id?: null | string
-					updated_at?: string
-				}
-				Relationships: []
-				Row: {
-					created_at: string
-					deleted_at: null | string
-					id: string
-					name: string
-					owner_id: string
-					settings: Json
-					slug: string
-					stripe_customer_id: null | string
-					updated_at: string
-				}
-				Update: {
-					created_at?: string
-					deleted_at?: null | string
-					id?: string
-					name?: string
-					owner_id?: string
-					settings?: Json
-					slug?: string
-					stripe_customer_id?: null | string
-					updated_at?: string
-				}
-			}
-			stripe_prices: {
-				Insert: {
-					active?: boolean
-					created_at?: string
-					currency: string
-					deleted_at?: null | string
-					id: string
-					lookup_key: string
-					metadata?: Json | null
-					nickname?: null | string
-					product_id: string
-					recurring_interval?: null | string
-					recurring_interval_count?: null | number
-					type: string
-					unit_amount?: null | number
-					updated_at?: string
-				}
-				Relationships: [
-					{
-						columns: ['product_id']
-						foreignKeyName: 'stripe_prices_product_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'stripe_products'
-					}
-				]
-				Row: {
-					active: boolean
-					created_at: string
-					currency: string
-					deleted_at: null | string
-					id: string
-					lookup_key: string
-					metadata: Json | null
-					nickname: null | string
-					product_id: string
-					recurring_interval: null | string
-					recurring_interval_count: null | number
-					type: string
-					unit_amount: null | number
-					updated_at: string
-				}
-				Update: {
-					active?: boolean
-					created_at?: string
-					currency?: string
-					deleted_at?: null | string
-					id?: string
-					lookup_key?: string
-					metadata?: Json | null
-					nickname?: null | string
-					product_id?: string
-					recurring_interval?: null | string
-					recurring_interval_count?: null | number
-					type?: string
-					unit_amount?: null | number
-					updated_at?: string
-				}
-			}
-			stripe_products: {
-				Insert: {
-					active?: boolean
-					created_at?: string
-					deleted_at?: null | string
-					description?: null | string
-					entitlements?: Json | null
-					id: string
-					marketing_features?: null | string[]
-					metadata?: Json | null
-					name: string
-					updated_at?: string
-				}
-				Relationships: []
-				Row: {
-					active: boolean
-					created_at: string
-					deleted_at: null | string
-					description: null | string
-					entitlements: Json | null
-					id: string
-					marketing_features: null | string[]
-					metadata: Json | null
-					name: string
-					updated_at: string
-				}
-				Update: {
-					active?: boolean
-					created_at?: string
-					deleted_at?: null | string
-					description?: null | string
-					entitlements?: Json | null
-					id?: string
-					marketing_features?: null | string[]
-					metadata?: Json | null
-					name?: string
-					updated_at?: string
-				}
-			}
-			stripe_subscriptions: {
-				Insert: {
-					amount: number
-					cancel_at?: null | string
-					cancel_at_period_end?: boolean
-					canceled_at?: null | string
-					created_at?: string
-					currency: string
-					current_period_end?: null | string
-					current_period_start?: null | string
-					deleted_at?: null | string
-					entitlement_id?: null | string
-					id: string
-					interval?: null | string
-					interval_count?: null | number
-					price_id?: null | string
-					product_id?: null | string
-					product_name?: null | string
-					project_id?: null | string
-					status: string
-					trial_end?: null | string
-					trial_start?: null | string
-					updated_at?: string
-				}
-				Relationships: [
-					{
-						columns: ['entitlement_id']
-						foreignKeyName: 'stripe_subscriptions_entitlement_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'entitlements'
-					},
-					{
-						columns: ['price_id']
-						foreignKeyName: 'stripe_subscriptions_price_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'stripe_prices'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'stripe_subscriptions_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['project_id']
-						referencedRelation: 'active_entitlements'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'stripe_subscriptions_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'projects'
-					}
-				]
-				Row: {
-					amount: number
-					cancel_at: null | string
-					cancel_at_period_end: boolean
-					canceled_at: null | string
-					created_at: string
-					currency: string
-					current_period_end: null | string
-					current_period_start: null | string
-					deleted_at: null | string
-					entitlement_id: null | string
-					id: string
-					interval: null | string
-					interval_count: null | number
-					price_id: null | string
-					product_id: null | string
-					product_name: null | string
-					project_id: null | string
-					status: string
-					trial_end: null | string
-					trial_start: null | string
-					updated_at: string
-				}
-				Update: {
-					amount?: number
-					cancel_at?: null | string
-					cancel_at_period_end?: boolean
-					canceled_at?: null | string
-					created_at?: string
-					currency?: string
-					current_period_end?: null | string
-					current_period_start?: null | string
-					deleted_at?: null | string
-					entitlement_id?: null | string
-					id?: string
-					interval?: null | string
-					interval_count?: null | number
-					price_id?: null | string
-					product_id?: null | string
-					product_name?: null | string
-					project_id?: null | string
-					status?: string
-					trial_end?: null | string
-					trial_start?: null | string
-					updated_at?: string
-				}
-			}
-			usage: {
-				Insert: {
-					count?: number
-					id?: string
-					limit_exceeded_at?: null | string
-					month: string
-					project_id?: null | string
-					updated_at?: string
-				}
-				Relationships: [
-					{
-						columns: ['project_id']
-						foreignKeyName: 'usage_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['project_id']
-						referencedRelation: 'active_entitlements'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'usage_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'projects'
-					}
-				]
-				Row: {
-					count: number
-					id: string
-					limit_exceeded_at: null | string
-					month: string
-					project_id: null | string
-					updated_at: string
-				}
-				Update: {
-					count?: number
-					id?: string
-					limit_exceeded_at?: null | string
-					month?: string
-					project_id?: null | string
-					updated_at?: string
-				}
-			}
-			users: {
-				Insert: {
-					avatar_url?: null | string
-					created_at?: string
-					deleted_at?: null | string
-					email: string
-					id: string
-					is_superadmin?: boolean
-					name?: null | string
-					updated_at?: string
-				}
-				Relationships: []
-				Row: {
-					avatar_url: null | string
-					created_at: string
-					deleted_at: null | string
-					email: string
-					id: string
-					is_superadmin: boolean
-					name: null | string
-					updated_at: string
-				}
-				Update: {
-					avatar_url?: null | string
-					created_at?: string
-					deleted_at?: null | string
-					email?: string
-					id?: string
-					is_superadmin?: boolean
-					name?: null | string
-					updated_at?: string
-				}
-			}
-			validation_logs: {
-				Insert: {
-					checks: Json
-					created_at?: string
-					email_encrypted: string
-					email_hash: string
-					fingerprint_id?: null | string
-					id?: string
-					ip_address?: unknown
-					is_valid: boolean
-					latency_ms?: null | number
-					project_id?: null | string
-					recommendation: string
-					risk_score: number
-					signals?: string[]
-				}
-				Relationships: [
-					{
-						columns: ['project_id']
-						foreignKeyName: 'validation_logs_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['project_id']
-						referencedRelation: 'active_entitlements'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'validation_logs_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'projects'
-					}
-				]
-				Row: {
-					checks: Json
-					created_at: string
-					email_encrypted: string
-					email_hash: string
-					fingerprint_id: null | string
-					id: string
-					ip_address: unknown
-					is_valid: boolean
-					latency_ms: null | number
-					project_id: null | string
-					recommendation: string
-					risk_score: number
-					signals: string[]
-				}
-				Update: {
-					checks?: Json
-					created_at?: string
-					email_encrypted?: string
-					email_hash?: string
-					fingerprint_id?: null | string
-					id?: string
-					ip_address?: unknown
-					is_valid?: boolean
-					latency_ms?: null | number
-					project_id?: null | string
-					recommendation?: string
-					risk_score?: number
-					signals?: string[]
-				}
-			}
+		Enums: {
+			[_ in never]: never
 		}
-		Views: {
-			active_entitlements: {
-				Relationships: []
-				Row: {
-					features: null | string[]
-					first_entitlement_start: null | string
-					is_active: boolean | null
-					last_refreshed: null | string
-					latest_entitlement_end: null | string
-					log_retention_days: null | number
-					owner_id: null | string
-					project_id: null | string
-					project_name: null | string
-					project_slug: null | string
-					sources: null | string[]
-					subscription_info: Json | null
-					team_limit: null | number
-					validations_limit: null | number
-				}
-			}
-			validation_logs_daily: {
-				Relationships: [
-					{
-						columns: ['project_id']
-						foreignKeyName: 'validation_logs_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['project_id']
-						referencedRelation: 'active_entitlements'
-					},
-					{
-						columns: ['project_id']
-						foreignKeyName: 'validation_logs_project_id_fkey'
-						isOneToOne: false
-						referencedColumns: ['id']
-						referencedRelation: 'projects'
-					}
-				]
-				Row: {
-					approved: null | number
-					avg_latency_ms: null | number
-					avg_risk_score: null | number
-					count: null | number
-					date: null | string
-					failed: null | number
-					first_validation: null | string
-					last_refreshed: null | string
-					last_validation: null | string
-					project_id: null | string
-					rejected: null | number
-				}
-			}
+		CompositeTypes: {
+			[_ in never]: never
 		}
 	}
 }
 
-export type Enums<
-	DefaultSchemaEnumNameOrOptions extends
-		| keyof DefaultSchema['Enums']
-		| { schema: keyof DatabaseWithoutInternals },
-	EnumName extends DefaultSchemaEnumNameOrOptions extends {
-		schema: keyof DatabaseWithoutInternals
-	}
-		? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
-		: never = never
-> = DefaultSchemaEnumNameOrOptions extends {
-	schema: keyof DatabaseWithoutInternals
-}
-	? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-	: DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-		? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
-		: never
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-export type Json = boolean | Json[] | null | number | string | { [key: string]: Json | undefined }
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
 
 export type Tables<
 	DefaultSchemaTableNameOrOptions extends
@@ -834,9 +808,39 @@ export type TablesUpdate<
 			: never
 		: never
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+export type Enums<
+	DefaultSchemaEnumNameOrOptions extends
+		| keyof DefaultSchema['Enums']
+		| { schema: keyof DatabaseWithoutInternals },
+	EnumName extends DefaultSchemaEnumNameOrOptions extends {
+		schema: keyof DatabaseWithoutInternals
+	}
+		? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+		: never = never
+> = DefaultSchemaEnumNameOrOptions extends {
+	schema: keyof DatabaseWithoutInternals
+}
+	? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+	: DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+		? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+		: never
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+export type CompositeTypes<
+	PublicCompositeTypeNameOrOptions extends
+		| keyof DefaultSchema['CompositeTypes']
+		| { schema: keyof DatabaseWithoutInternals },
+	CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+		schema: keyof DatabaseWithoutInternals
+	}
+		? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+		: never = never
+> = PublicCompositeTypeNameOrOptions extends {
+	schema: keyof DatabaseWithoutInternals
+}
+	? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+	: PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+		? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+		: never
 
 export const Constants = {
 	public: {
