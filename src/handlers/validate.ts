@@ -14,7 +14,7 @@ import { applyOverrides, runValidations } from '../services/validation'
 import { type ProjectSettings, type ValidationRequest, type ValidationResponse } from '../types'
 import { createLogger, errorResponse, getCachedData, jsonResponse, validateOrigin } from '../utils'
 
-const logger = createLogger({ handler: 'validate' })
+const requestLogger = createLogger({ handler: 'validate' })
 
 export async function handleValidation(
 	request: Request,
@@ -29,7 +29,7 @@ export async function handleValidation(
 		}
 
 		if (request.method !== 'POST') {
-			logger.warn('Invalid method used', { method: request.method })
+			requestLogger.warn('Invalid method used', { method: request.method })
 			return errorResponse('method_not_allowed', 'Only POST is allowed', 405)
 		}
 
