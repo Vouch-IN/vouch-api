@@ -104,13 +104,9 @@ export default {
 				await flushAllLogQueues(env)
 			}
 
-			// Run disposable domain sync daily at 2am UTC
+			// Run disposable domain sync and IP reputation sync daily at 2am UTC
 			if (cron === '0 2 * * *') {
 				await syncDisposableDomains(env)
-			}
-
-			// Run IP reputation sync daily at 3am UTC
-			if (cron === '0 3 * * *') {
 				await syncIPLists(env)
 			}
 		} catch (error) {

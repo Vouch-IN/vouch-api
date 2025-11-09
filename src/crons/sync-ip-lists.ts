@@ -1,4 +1,6 @@
-import { createClient } from '../lib/supabase'
+import pAll from 'p-all'
+import pRetry from 'p-retry'
+
 import { jsonResponse } from '../utils'
 
 /**
@@ -10,11 +12,9 @@ import { jsonResponse } from '../utils'
  * - Cloud Providers: Official IP ranges from AWS, GCP, Azure
  */
 
-
 export async function syncIPLists(env: Env): Promise<Response> {
 	console.log('Starting IP reputation lists sync...')
 
-	const client = createClient(env)
 	const results: Record<string, unknown> = {}
 
 	// Reliable, verified sources (all actively maintained as of Nov 2025)
@@ -52,7 +52,8 @@ export async function syncIPLists(env: Env): Promise<Response> {
 				const text = await response.text()
 
 				// Parse netset format (supports both IPs and CIDR ranges)
-				text.split('\n')
+				text
+					.split('\n')
 					.map((line) => line.trim())
 					.filter((line) => line && !line.startsWith('#'))
 					.forEach((entry) => {
@@ -83,7 +84,8 @@ export async function syncIPLists(env: Env): Promise<Response> {
 
 				// Parse Tor Project format (ExitAddress IP timestamp)
 				// Or simple IP list from FireHOL backup
-				text.split('\n')
+				text
+					.split('\n')
 					.map((line) => line.trim())
 					.filter((line) => line && !line.startsWith('#'))
 					.forEach((line) => {
@@ -133,18 +135,6 @@ export async function syncIPLists(env: Env): Promise<Response> {
 			const errorMsg = `Safety check failed: ${vpnRemoved.length} VPN IPs would be removed (${((vpnRemoved.length / cachedVPNs.size) * 100).toFixed(1)}%)`
 			console.error(`Sync aborted: ${errorMsg}`)
 
-			await client.from('disposable_domain_sync_log').insert({
-				added_domains: [],
-				domains_added: 0,
-				domains_removed: 0,
-				error_message: errorMsg,
-				removed_domains: [],
-				sources: Object.values(sources).flat(),
-				success: false,
-				synced_at: new Date().toISOString(),
-				total_domains: 0
-			})
-
 			return jsonResponse({ error: errorMsg, success: false }, 500)
 		}
 
@@ -156,41 +146,78 @@ export async function syncIPLists(env: Env): Promise<Response> {
 		}
 
 		// ============================================================
-		// 6. Update KV stores with new data
+		// 6. Update KV stores with new data (batched with concurrency control)
 		// ============================================================
-		const kvPromises: Promise<unknown>[] = []
+		const kvOperations: (() => Promise<unknown>)[] = []
 
-		// Add new VPN/Anonymous IPs
-		vpnAdded.forEach((ip) => {
-			if (env.VPN_IPS) kvPromises.push(env.VPN_IPS.put(ip, '1', { expirationTtl: 86400 * 7 }))
-		})
-
-		// Remove old VPN IPs
-		vpnRemoved.forEach((ip) => {
-			if (env.VPN_IPS) kvPromises.push(env.VPN_IPS.delete(ip))
-		})
-
-		// Add new Tor IPs
-		torAdded.forEach((ip) => {
-			if (env.TOR_IPS) kvPromises.push(env.TOR_IPS.put(ip, '1', { expirationTtl: 86400 * 2 }))
-		})
-
-		// Remove old Tor IPs
-		torRemoved.forEach((ip) => {
-			if (env.TOR_IPS) kvPromises.push(env.TOR_IPS.delete(ip))
-		})
-
-		// Store CIDR ranges (VPN/proxy ranges)
-		if (env.VPN_IPS && anonymousRanges.length > 0) {
-			kvPromises.push(
-				env.VPN_IPS.put('_ranges', JSON.stringify(anonymousRanges), {
-					expirationTtl: 86400 * 7
+		// Helper to create retryable KV operation
+		const createKVOperation = (operation: () => Promise<unknown>) => {
+			return () =>
+				pRetry(operation, {
+					onFailedAttempt: (error) => {
+						console.warn(
+							`KV operation failed (attempt ${error.attemptNumber}/${error.retriesLeft + error.attemptNumber})`
+						)
+					},
+					retries: 3
 				})
-			)
 		}
 
-		// Execute all KV operations
-		await Promise.allSettled(kvPromises)
+		// Add new VPN/Anonymous IPs
+		if (env.VPN_IPS) {
+			const vpnKV = env.VPN_IPS
+			vpnAdded.forEach((ip) => {
+				kvOperations.push(createKVOperation(() => vpnKV.put(ip, '1', { expirationTtl: 86400 * 7 })))
+			})
+
+			// Remove old VPN IPs
+			vpnRemoved.forEach((ip) => {
+				kvOperations.push(createKVOperation(() => vpnKV.delete(ip)))
+			})
+
+			// Store CIDR ranges (VPN/proxy ranges)
+			if (anonymousRanges.length > 0) {
+				kvOperations.push(
+					createKVOperation(() =>
+						vpnKV.put('_ranges', JSON.stringify(anonymousRanges), {
+							expirationTtl: 86400 * 7
+						})
+					)
+				)
+			}
+		}
+
+		// Add new Tor IPs
+		if (env.TOR_IPS) {
+			const torKV = env.TOR_IPS
+			torAdded.forEach((ip) => {
+				kvOperations.push(createKVOperation(() => torKV.put(ip, '1', { expirationTtl: 86400 * 2 })))
+			})
+
+			// Remove old Tor IPs
+			torRemoved.forEach((ip) => {
+				kvOperations.push(createKVOperation(() => torKV.delete(ip)))
+			})
+		}
+
+		// Execute all KV operations with concurrency limit (100 concurrent operations)
+		console.log(`Executing ${kvOperations.length} KV operations with concurrency limit...`)
+
+		let failedOpsCount = 0
+		await pAll(kvOperations, {
+			concurrency: 100,
+			stopOnError: false
+		}).catch((errors: unknown) => {
+			// pAll throws AggregateError if stopOnError is false and there are failures
+			if (errors instanceof AggregateError) {
+				failedOpsCount = errors.errors.length
+				console.warn(`${failedOpsCount} KV operations failed after retries`)
+			}
+		})
+
+		if (failedOpsCount === 0) {
+			console.log(`Successfully completed ${kvOperations.length} KV operations`)
+		}
 
 		// ============================================================
 		// 7. Log results
@@ -213,35 +240,10 @@ export async function syncIPLists(env: Env): Promise<Response> {
 		console.log(
 			`Sync complete: VPN +${vpnAdded.length}/-${vpnRemoved.length} (${anonymousIPs.size} IPs, ${anonymousRanges.length} ranges), Tor +${torAdded.length}/-${torRemoved.length} (${torIPs.size} IPs). Datacenter detection via ASN (instant, no sync needed)`
 		)
-
-		// Log to Supabase
-		await client.from('disposable_domain_sync_log').insert({
-			added_domains: [],
-			domains_added: vpnAdded.length + torAdded.length,
-			domains_removed: vpnRemoved.length + torRemoved.length,
-			error_message: '',
-			removed_domains: [],
-			sources: Object.values(sources).flat(),
-			success: true,
-			synced_at: new Date().toISOString(),
-			total_domains: anonymousIPs.size + torIPs.size + anonymousRanges.length
-		})
 	} catch (error) {
 		console.error('IP reputation sync failed:', error)
 		results.success = false
 		results.error = error instanceof Error ? error.message : String(error)
-
-		await client.from('disposable_domain_sync_log').insert({
-			added_domains: [],
-			domains_added: 0,
-			domains_removed: 0,
-			error_message: String(error),
-			removed_domains: [],
-			sources: Object.values(sources).flat(),
-			success: false,
-			synced_at: new Date().toISOString(),
-			total_domains: 0
-		})
 	}
 
 	return jsonResponse(results)
