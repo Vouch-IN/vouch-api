@@ -106,7 +106,8 @@ export async function handleValidation(request: Request, env: Env): Promise<Resp
 			fingerprintHash,
 			ip,
 			asn,
-			env
+			env,
+			auth.apiKey.type
 		)
 
 		// 14. Check whitelist/blacklist overrides

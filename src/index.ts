@@ -1,4 +1,4 @@
-import { flushAllLogQueues, syncDisposableDomains } from './crons'
+import { flushAllLogQueues, syncDisposableDomains, syncIPLists } from './crons'
 import { handleHealth, handleValidation, handleWebhook } from './handlers'
 import {
 	handleDebugAddRoleEmail,
@@ -10,7 +10,8 @@ import {
 	handleDebugKvList,
 	handleDebugRemoveRoleEmail,
 	handleDebugSetRoleEmails,
-	handleDebugSyncDomains
+	handleDebugSyncDomains,
+	handleDebugSyncIPLists
 } from './handlers/debug'
 import { handleError } from './middleware'
 
@@ -62,6 +63,9 @@ export default {
 				if (url.pathname === '/debug/sync-domains') {
 					return await handleDebugSyncDomains(request, env)
 				}
+				if (url.pathname === '/debug/sync-ip-lists') {
+					return await handleDebugSyncIPLists(request, env)
+				}
 				if (url.pathname === '/debug/flush-logs') {
 					return await handleDebugFlushLogs(request, env)
 				}
@@ -99,6 +103,11 @@ export default {
 			// Run disposable domain sync daily at 2am UTC
 			if (cron === '0 2 * * *') {
 				await syncDisposableDomains(env)
+			}
+
+			// Run IP reputation sync daily at 3am UTC
+			if (cron === '0 3 * * *') {
+				await syncIPLists(env)
 			}
 		} catch (error) {
 			console.error('Scheduled job failed:', error)

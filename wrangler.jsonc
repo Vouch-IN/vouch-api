@@ -12,7 +12,8 @@
 	"triggers": {
 		"crons": [
 			"0 * * * *",
-			"0 2 * * *"
+			"0 2 * * *",
+			"0 3 * * *"
 		]
 	},
 	"env": {
@@ -63,6 +64,14 @@
 					"binding": "ROLE_EMAILS",
 					"id": "963a3852a403470dbfead9c3dd6d1b39",
 					"remote": true
+				},
+				{
+					"binding": "VPN_IPS",
+					"id": "95415ccbf1514d0eaba4b6f66106ff76"
+				},
+				{
+					"binding": "TOR_IPS",
+					"id": "3ee3843d171b48f5941fe53e19608e70"
 				}
 			]
 		},
@@ -107,6 +116,14 @@
 					"binding": "ROLE_EMAILS",
 					"id": "59ccac7fab8a493f9d63b6b8f2465d8b",
 					"remote": true
+				},
+				{
+					"binding": "VPN_IPS",
+					"id": "57a8145e67dc4b5099da0086d26203e8"
+				},
+				{
+					"binding": "TOR_IPS",
+					"id": "e0adb877b99e4a48b645a83b7091a582"
 				}
 			]
 		}

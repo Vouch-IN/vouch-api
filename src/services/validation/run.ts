@@ -19,7 +19,8 @@ export async function runValidations(
 	fingerprintHash: null | string,
 	ip: null | string,
 	asn: unknown,
-	env: Env
+	env: Env,
+	apiKeyType?: 'client' | 'server'
 ) {
 	const results: ValidationResults = {
 		checks: {},
@@ -232,7 +233,7 @@ export async function runValidations(
 		const promise = (async () => {
 			const ipStart = performance.now()
 			try {
-				const ipData = await checkIPReputation(ip, asn, env)
+				const ipData = await checkIPReputation(ip, asn, env, apiKeyType)
 				results.ipData = ipData
 				results.checks.ip = {
 					latency: performance.now() - ipStart,

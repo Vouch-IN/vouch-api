@@ -90,4 +90,4 @@ export type ValidationToggles = {
 	roleEmail: ValidationAction
 	smtp: ValidationAction
 	syntax: ValidationAction
-} 
+}

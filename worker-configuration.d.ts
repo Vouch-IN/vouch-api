@@ -22,6 +22,8 @@ declare namespace Cloudflare {
 		LOG_QUEUE: KVNamespace
 		USAGE_COUNTER: KVNamespace
 		ROLE_EMAILS: KVNamespace
+		VPN_IPS: KVNamespace
+		TOR_IPS: KVNamespace
 	}
 }
 interface Env extends Cloudflare.Env {}
