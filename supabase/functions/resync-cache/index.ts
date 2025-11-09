@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
 
 			console.log(`[Resync] Found ${apiKeys?.length || 0} API keys`)
 
-			// Trigger webhook for each API key
-			for (const apiKey of apiKeys || []) {
+			// Trigger webhook for each API key in parallel
+			const apiKeyPromises = (apiKeys || []).map(async (apiKey) => {
 				try {
 					await fetch(WEBHOOK_URL, {
 						method: 'POST',
@@ -80,12 +80,21 @@ Deno.serve(async (req) => {
 							timestamp: new Date().toISOString()
 						})
 					})
-					results.apiKeys.synced++
+					return { success: true, id: apiKey.id }
 				} catch (error) {
 					console.error(`[Resync] Failed to sync API key ${apiKey.id}:`, error)
+					return { success: false, id: apiKey.id }
+				}
+			})
+
+			const apiKeyResults = await Promise.allSettled(apiKeyPromises)
+			apiKeyResults.forEach((result) => {
+				if (result.status === 'fulfilled' && result.value.success) {
+					results.apiKeys.synced++
+				} else {
 					results.apiKeys.failed++
 				}
-			}
+			})
 		}
 
 		// Resync projects
@@ -102,8 +111,8 @@ Deno.serve(async (req) => {
 
 			console.log(`[Resync] Found ${projects?.length || 0} projects`)
 
-			// Trigger webhook for each project
-			for (const project of projects || []) {
+			// Trigger webhook for each project in parallel
+			const projectPromises = (projects || []).map(async (project) => {
 				try {
 					await fetch(WEBHOOK_URL, {
 						method: 'POST',
@@ -119,12 +128,21 @@ Deno.serve(async (req) => {
 							timestamp: new Date().toISOString()
 						})
 					})
-					results.projects.synced++
+					return { success: true, id: project.id }
 				} catch (error) {
 					console.error(`[Resync] Failed to sync project ${project.id}:`, error)
+					return { success: false, id: project.id }
+				}
+			})
+
+			const projectResults = await Promise.allSettled(projectPromises)
+			projectResults.forEach((result) => {
+				if (result.status === 'fulfilled' && result.value.success) {
+					results.projects.synced++
+				} else {
 					results.projects.failed++
 				}
-			}
+			})
 		}
 
 		console.log('[Resync] Completed:', results)

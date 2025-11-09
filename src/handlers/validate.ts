@@ -41,13 +41,13 @@ export async function handleValidation(
 			return errorResponse('invalid_request', 'Missing or invalid email', 422)
 		}
 
-		if (!body?.projectId || typeof body.projectId !== 'string') {
-			requestLogger.warn('Invalid request body', { hasProjectId: !!body?.projectId })
+		// Extract project id from the request headers
+		const projectId = request.headers.get('x-project-id')
+
+		if (!projectId || typeof projectId !== 'string') {
+			requestLogger.warn('Invalid request body', { hasProjectId: !!projectId })
 			return errorResponse('invalid_request', 'Missing or invalid project id', 422)
 		}
-
-		// Extract project id from the request body
-		const projectId = body.projectId
 
 		// Authenticate request and Get project settings (from cache)
 		const [auth, projectSettings] = await Promise.all([
