@@ -62,6 +62,9 @@
 			"name": "vouch-api-production",
 			"workers_dev": false,
 			"preview_urls": false,
+			"observability": {
+				"enabled": true
+			},
 			"routes": [
 				{
 					"pattern": "api.vouch.expert",
@@ -119,6 +122,9 @@
 			"name": "vouch-api-development",
 			"workers_dev": true,
 			"preview_urls": true,
+			"observability": {
+				"enabled": true
+			},
 			"vars": {
 				"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
 				"ENVIRONMENT": "development"
