@@ -18,10 +18,10 @@ Deno.serve(async (req) => {
 		return handleCors()
 	}
 
-	// Only allow POST
-	if (req.method !== 'POST') {
-		return errorResponse('Method not allowed', 405)
-	}
+	// // Only allow POST
+	// if (req.method !== 'POST') {
+	// 	return errorResponse('Method not allowed', 405)
+	// }
 
 	try {
 		// Validate required environment variables
@@ -33,9 +33,9 @@ Deno.serve(async (req) => {
 			return errorResponse('Configuration error: Missing required environment variables', 500)
 		}
 
-		// Authenticate user (must be authenticated to trigger resync)
-		await authenticateUser(req)
-		const { supabaseAdmin } = initSupabaseClients(req.headers.get('Authorization'))
+		// // Authenticate user (must be authenticated to trigger resync)
+		// await authenticateUser(req)
+		const { supabaseAdmin } = initSupabaseClients()
 
 		// Parse options (default to resyncing everything)
 		const body = await req.json().catch(() => ({}))

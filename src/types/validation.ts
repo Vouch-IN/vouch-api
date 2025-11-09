@@ -57,6 +57,7 @@ export type ValidationLog = {
 export type ValidationRequest = {
 	email: string
 	fingerprint?: DeviceFingerprint
+	projectId: string
 	validations?: Partial<ValidationToggles>
 }
 

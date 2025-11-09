@@ -7,7 +7,8 @@ const logger = createLogger({ middleware: 'rateLimit' })
 export async function checkRateLimit(
 	projectId: string,
 	keyType: 'client' | 'server',
-	env: Env
+	env: Env,
+	ctx: ExecutionContext
 ): Promise<RateLimitResult> {
 	const now = Date.now()
 	const windowKey = `ratelimit:${projectId}:${Math.floor(now / WINDOW_MS)}`
@@ -27,9 +28,11 @@ export async function checkRateLimit(
 		}
 	}
 
-	await env.RATE_LIMITS.put(windowKey, (currentCount + 1).toString(), {
-		expirationTtl: Math.ceil(WINDOW_MS / 1000) + 60
-	})
+	ctx.waitUntil(
+		env.RATE_LIMITS.put(windowKey, (currentCount + 1).toString(), {
+			expirationTtl: Math.ceil(WINDOW_MS / 1000) + 60
+		})
+	)
 
 	return {
 		allowed: true,

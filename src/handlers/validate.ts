@@ -33,10 +33,34 @@ export async function handleValidation(
 			return errorResponse('method_not_allowed', 'Only POST is allowed', 405)
 		}
 
-		// 1. Authenticate request
-		const auth = await authenticate(request, env)
+		// Parse request body
+		const body: undefined | ValidationRequest = await request.json()
+
+		if (!body?.email || typeof body.email !== 'string') {
+			requestLogger.warn('Invalid request body', { hasEmail: !!body?.email })
+			return errorResponse('invalid_request', 'Missing or invalid email', 422)
+		}
+
+		if (!body?.projectId || typeof body.projectId !== 'string') {
+			requestLogger.warn('Invalid request body', { hasProjectId: !!body?.projectId })
+			return errorResponse('invalid_request', 'Missing or invalid project id', 422)
+		}
+
+		// Extract project id from the request body
+		const projectId = body.projectId
+
+		// Authenticate request and Get project settings (from cache)
+		const [auth, projectSettings] = await Promise.all([
+			authenticate(request, env),
+			getCachedData<ProjectSettings>(`project:${projectId}`, env)
+		])
+
 		if (!auth.success || !auth.apiKey || !auth.projectId) {
 			return errorResponse('unauthorized', auth.error ?? 'Unauthorized', 401)
+		}
+
+		if (auth.projectId !== projectId) {
+			return errorResponse('unauthorized', 'Invalid project id', 401)
 		}
 
 		// Create request-scoped logger with context
@@ -46,25 +70,12 @@ export async function handleValidation(
 			projectId: auth.projectId
 		})
 
-		// 2. Validate origin for client keys
-		if (auth.apiKey.type === 'client') {
-			const originValidation = validateOrigin(request, auth.apiKey)
-			if (!originValidation.valid) {
-				requestLogger.warn('Origin validation failed', {
-					allowedDomains: auth.apiKey.allowed_domains,
-					origin: request.headers.get('Origin'),
-					reason: originValidation.error
-				})
-				return errorResponse('forbidden', originValidation.error ?? 'Origin not allowed', 403)
-			}
-		}
+		// Check rate limit based on key type and Check usage quota
+		const [rate, usageCheck] = await Promise.all([
+			checkRateLimit(auth.projectId, auth.apiKey.type === 'client' ? 'client' : 'server', env),
+			checkUsageQuota(auth.projectId, projectSettings?.entitlements, env)
+		])
 
-		// 3. Check rate limit based on key type
-		const rate = await checkRateLimit(
-			auth.projectId,
-			auth.apiKey.type === 'client' ? 'client' : 'server',
-			env
-		)
 		const rateLimitHeaders = {
 			'X-RateLimit-Limit': rate.limit.toString(),
 			'X-RateLimit-Remaining': rate.remaining.toString(),
@@ -76,19 +87,6 @@ export async function handleValidation(
 			return errorResponse('rate_limited', 'Rate limit exceeded', 429, rateLimitHeaders)
 		}
 
-		// 4. Parse request body
-		const body: undefined | ValidationRequest = await request.json()
-
-		if (!body?.email || typeof body.email !== 'string') {
-			requestLogger.warn('Invalid request body', { hasEmail: !!body?.email })
-			return errorResponse('invalid_request', 'Missing or invalid email', 422)
-		}
-
-		// 5. Get project settings (from cache)
-		const projectSettings = await getCachedData<ProjectSettings>(`project:${auth.projectId}`, env)
-
-		// 6. Check usage quota
-		const usageCheck = await checkUsageQuota(auth.projectId, projectSettings?.entitlements, env)
 		if (!usageCheck.allowed) {
 			requestLogger.warn('Usage quota exceeded', {
 				current: usageCheck.current,

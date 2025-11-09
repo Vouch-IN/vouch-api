@@ -68,7 +68,7 @@ async function handleProjectChange(
 	env: Env
 ): Promise<void> {
 	const project = operation === 'DELETE' ? payload.old_row : payload.new_row
-	const cacheKey = `project:${project.id}`
+	const cacheKey = `project:${project.slug}`
 
 	if (operation === 'DELETE') {
 		// Remove from cache if deleted
