@@ -137,10 +137,6 @@
 			},
 			"kv_namespaces": [
 				{
-					"binding": "DISPOSABLE_DOMAINS",
-					"id": "4a7c3fcab7aa48728d2f4fc67240c08e"
-				},
-				{
 					"binding": "MX_CACHE",
 					"id": "5e4c8130dc994f21b75000780613bb5f"
 				},
@@ -175,6 +171,10 @@
 				{
 					"binding": "TOR_IPS",
 					"id": "e0adb877b99e4a48b645a83b7091a582"
+				},
+				{
+					"binding": "DISPOSABLE_DOMAINS",
+					"id": "2cc63f40ff594f5d903cbc56dcf7c902"
 				}
 			],
 			"r2_buckets": [
