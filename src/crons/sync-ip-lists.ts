@@ -64,10 +64,12 @@ export async function syncIPLists(env: Env): Promise<Response> {
 					.forEach((entry) => {
 						if (entry.includes('/')) {
 							// CIDR range
-							anonymousRanges.push(entry)
+							// todo uncomment
+							// anonymousRanges.push(entry)
 						} else {
 							// Individual IP
-							anonymousIPs.add(entry)
+							// todo uncomment
+							// anonymousIPs.add(entry)
 						}
 					})
 			} catch (error) {
