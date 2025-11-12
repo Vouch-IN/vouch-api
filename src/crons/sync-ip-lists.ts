@@ -35,6 +35,11 @@ export async function syncIPLists(env: Env): Promise<Response> {
 	}
 
 	try {
+		// R2 file keys for caching
+		const R2_VPN_IPS_KEY = 'vpn-ips.txt'
+		const R2_VPN_RANGES_KEY = 'vpn-ranges.txt'
+		const R2_TOR_IPS_KEY = 'tor-ips.txt'
+
 		// ============================================================
 		// 1. Fetch Anonymous/VPN/Proxy IPs from FireHOL
 		// ============================================================
@@ -107,17 +112,69 @@ export async function syncIPLists(env: Env): Promise<Response> {
 		}
 
 		// ============================================================
-		// 3. Get current cached IPs for incremental updates
+		// 3. Get current cached IPs from R2 instead of listing KV keys
 		// ============================================================
 		// NOTE: Datacenter detection now uses ASN (instant, no KV needed)
 		// See src/constants/asn.ts and src/services/ip-validation/reputation.ts
-		const [vpnList, torList] = await Promise.all([
-			env.VPN_IPS ? env.VPN_IPS.list() : Promise.resolve({ keys: [] }),
-			env.TOR_IPS ? env.TOR_IPS.list() : Promise.resolve({ keys: [] })
-		])
+		const cachedVPNs = new Set<string>()
+		const cachedVPNRanges: string[] = []
+		const cachedTor = new Set<string>()
+		let isFirstRunVPN = false
+		let isFirstRunTor = false
 
-		const cachedVPNs = new Set(vpnList.keys.map((k) => k.name))
-		const cachedTor = new Set(torList.keys.map((k) => k.name))
+		// Load cached VPN IPs from R2
+		try {
+			const [vpnIPsObj, vpnRangesObj] = await Promise.all([
+				env.SYNC_DATA.get(R2_VPN_IPS_KEY),
+				env.SYNC_DATA.get(R2_VPN_RANGES_KEY)
+			])
+
+			if (vpnIPsObj) {
+				const text = await vpnIPsObj.text()
+				text
+					.split('\n')
+					.map((line) => line.trim())
+					.filter((line) => line.length > 0)
+					.forEach((ip) => cachedVPNs.add(ip))
+				console.log(`Loaded ${cachedVPNs.size} VPN IPs from R2 cache`)
+			} else {
+				isFirstRunVPN = true
+				console.log('No R2 VPN cache found - this is the first run')
+			}
+
+			if (vpnRangesObj) {
+				const text = await vpnRangesObj.text()
+				text
+					.split('\n')
+					.map((line) => line.trim())
+					.filter((line) => line.length > 0)
+					.forEach((range) => cachedVPNRanges.push(range))
+				console.log(`Loaded ${cachedVPNRanges.length} VPN ranges from R2 cache`)
+			}
+		} catch (error) {
+			isFirstRunVPN = true
+			console.log('Error reading R2 VPN cache - treating as first run:', error)
+		}
+
+		// Load cached Tor IPs from R2
+		try {
+			const torIPsObj = await env.SYNC_DATA.get(R2_TOR_IPS_KEY)
+			if (torIPsObj) {
+				const text = await torIPsObj.text()
+				text
+					.split('\n')
+					.map((line) => line.trim())
+					.filter((line) => line.length > 0)
+					.forEach((ip) => cachedTor.add(ip))
+				console.log(`Loaded ${cachedTor.size} Tor IPs from R2 cache`)
+			} else {
+				isFirstRunTor = true
+				console.log('No R2 Tor cache found - this is the first run')
+			}
+		} catch (error) {
+			isFirstRunTor = true
+			console.log('Error reading R2 Tor cache - treating as first run:', error)
+		}
 
 		// ============================================================
 		// 4. Compute incremental changes
@@ -129,20 +186,30 @@ export async function syncIPLists(env: Env): Promise<Response> {
 		const torRemoved = Array.from(cachedTor).filter((ip) => !torIPs.has(ip))
 
 		// ============================================================
-		// 5. Safety checks to prevent mass deletions
+		// 5. Safety checks to prevent mass deletions (skip on first run)
 		// ============================================================
-		if (vpnRemoved.length > cachedVPNs.size * 0.2 && cachedVPNs.size > 100) {
+		if (!isFirstRunVPN && vpnRemoved.length > cachedVPNs.size * 0.2 && cachedVPNs.size > 100) {
 			const errorMsg = `Safety check failed: ${vpnRemoved.length} VPN IPs would be removed (${((vpnRemoved.length / cachedVPNs.size) * 100).toFixed(1)}%)`
 			console.error(`Sync aborted: ${errorMsg}`)
 
 			return jsonResponse({ error: errorMsg, success: false }, 500)
 		}
 
-		if (torRemoved.length > cachedTor.size * 0.3 && cachedTor.size > 50) {
+		if (!isFirstRunTor && torRemoved.length > cachedTor.size * 0.3 && cachedTor.size > 50) {
 			const errorMsg = `Safety check failed: ${torRemoved.length} Tor IPs would be removed (${((torRemoved.length / cachedTor.size) * 100).toFixed(1)}%)`
 			console.error(`Sync aborted: ${errorMsg}`)
 
 			return jsonResponse({ error: errorMsg, success: false }, 500)
+		}
+
+		if (isFirstRunVPN) {
+			console.log(
+				`First run VPN: Loading ${anonymousIPs.size} IPs and ${anonymousRanges.length} ranges into cache`
+			)
+		}
+
+		if (isFirstRunTor) {
+			console.log(`First run Tor: Loading ${torIPs.size} IPs into cache`)
 		}
 
 		// ============================================================
@@ -220,7 +287,56 @@ export async function syncIPLists(env: Env): Promise<Response> {
 		}
 
 		// ============================================================
-		// 7. Log results
+		// 7. Update R2 cache with the new IP lists
+		// ============================================================
+		const r2Updates = []
+
+		// Update VPN IPs cache
+		if (anonymousIPs.size > 0) {
+			const sortedVPNIPs = Array.from(anonymousIPs).sort()
+			const vpnIPsText = sortedVPNIPs.join('\n')
+			r2Updates.push(
+				env.SYNC_DATA.put(R2_VPN_IPS_KEY, vpnIPsText, {
+					httpMetadata: {
+						contentType: 'text/plain'
+					}
+				})
+			)
+		}
+
+		// Update VPN ranges cache
+		if (anonymousRanges.length > 0) {
+			const sortedVPNRanges = anonymousRanges.sort()
+			const vpnRangesText = sortedVPNRanges.join('\n')
+			r2Updates.push(
+				env.SYNC_DATA.put(R2_VPN_RANGES_KEY, vpnRangesText, {
+					httpMetadata: {
+						contentType: 'text/plain'
+					}
+				})
+			)
+		}
+
+		// Update Tor IPs cache
+		if (torIPs.size > 0) {
+			const sortedTorIPs = Array.from(torIPs).sort()
+			const torIPsText = sortedTorIPs.join('\n')
+			r2Updates.push(
+				env.SYNC_DATA.put(R2_TOR_IPS_KEY, torIPsText, {
+					httpMetadata: {
+						contentType: 'text/plain'
+					}
+				})
+			)
+		}
+
+		await Promise.all(r2Updates)
+		console.log(
+			`Updated R2 cache: ${anonymousIPs.size} VPN IPs, ${anonymousRanges.length} VPN ranges, ${torIPs.size} Tor IPs`
+		)
+
+		// ============================================================
+		// 8. Log results
 		// ============================================================
 		results.success = true
 		results.synced_at = new Date().toISOString()
