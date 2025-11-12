@@ -130,6 +130,21 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 			console.log(`Successfully completed ${kvOperations.length} KV operations`)
 		}
 
+		// Store metadata about the sync
+		await env.DISPOSABLE_DOMAINS.put(
+			'domains:metadata',
+			JSON.stringify({
+				changes: {
+					added: added.length,
+					removed: removed.length
+				},
+				lastSync: Date.now(),
+				sources,
+				totalDomains: allDomains.size,
+				version: `v${new Date().toISOString().substring(0, 10)}`
+			})
+		)
+
 		const { error } = await client.from('disposable_domain_sync_log').insert(insertPayload)
 
 		if (error) {
