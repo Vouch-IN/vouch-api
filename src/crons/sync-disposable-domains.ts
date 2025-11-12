@@ -1,3 +1,6 @@
+import pAll from 'p-all'
+import pRetry from 'p-retry'
+
 import { createClient } from '../lib/supabase'
 import { jsonResponse } from '../utils'
 
@@ -70,7 +73,7 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 		results = insertPayload
 
 		// Safety check to abort if too many removals
-		if (removed.length > cachedDomains.size * 0.1) {
+		if (cachedDomains.size > 1000 && removed.length > cachedDomains.size * 0.1) {
 			console.error(`Sync aborted: Removing too many domains: ${removed.length}`)
 			await client.from('disposable_domain_sync_log').insert({
 				...insertPayload,
@@ -80,14 +83,52 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 			return jsonResponse(results)
 		}
 
+		// ============================================================
+		// Update KV store with new data (batched with concurrency control)
+		// ============================================================
+		const kvOperations: (() => Promise<unknown>)[] = []
+
+		// Helper to create retryable KV operation
+		const createKVOperation = (operation: () => Promise<unknown>) => {
+			return () =>
+				pRetry(operation, {
+					onFailedAttempt: (error) => {
+						console.warn(
+							`KV operation failed (attempt ${error.attemptNumber}/${error.retriesLeft + error.attemptNumber})`
+						)
+					},
+					retries: 3
+				})
+		}
+
 		// Add new domains to KV (each domain as a separate key)
-		const addPromises = added.map((domain) => env.DISPOSABLE_DOMAINS.put(domain, '1'))
+		added.forEach((domain) => {
+			kvOperations.push(createKVOperation(() => env.DISPOSABLE_DOMAINS.put(domain, '1')))
+		})
 
 		// Remove old domains from KV
-		const removePromises = removed.map((domain) => env.DISPOSABLE_DOMAINS.delete(domain))
+		removed.forEach((domain) => {
+			kvOperations.push(createKVOperation(() => env.DISPOSABLE_DOMAINS.delete(domain)))
+		})
 
-		// Execute all KV operations in parallel
-		await Promise.all([...addPromises, ...removePromises])
+		// Execute all KV operations with concurrency limit (100 concurrent operations)
+		console.log(`Executing ${kvOperations.length} KV operations with concurrency limit...`)
+
+		let failedOpsCount = 0
+		await pAll(kvOperations, {
+			concurrency: 100,
+			stopOnError: false
+		}).catch((errors: unknown) => {
+			// pAll throws AggregateError if stopOnError is false and there are failures
+			if (errors instanceof AggregateError) {
+				failedOpsCount = errors.errors.length
+				console.warn(`${failedOpsCount} KV operations failed after retries`)
+			}
+		})
+
+		if (failedOpsCount === 0) {
+			console.log(`Successfully completed ${kvOperations.length} KV operations`)
+		}
 
 		const { error } = await client.from('disposable_domain_sync_log').insert(insertPayload)
 
