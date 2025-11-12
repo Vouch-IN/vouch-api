@@ -11,17 +11,37 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 	const client = createClient(env)
 
 	const sources = [
-		'https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/master/disposable_email_blocklist.conf',
-		'https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt',
-		'https://raw.githubusercontent.com/ivolo/disposable-email-domains/master/index.json',
-		'https://raw.githubusercontent.com/FGRibreau/mailchecker/refs/heads/master/list.txt',
+		// 'https://raw.githubusercontent.com/disposable-email-domains/disposable-email-domains/master/disposable_email_blocklist.conf',
+		// 'https://raw.githubusercontent.com/disposable/disposable-email-domains/master/domains.txt',
+		// 'https://raw.githubusercontent.com/ivolo/disposable-email-domains/master/index.json',
+		// 'https://raw.githubusercontent.com/FGRibreau/mailchecker/refs/heads/master/list.txt',
 		'https://gist.githubusercontent.com/adamloving/4401361/raw/e81212c3caecb54b87ced6392e0a0de2b6466287/temporary-email-address-domains'
 	]
 
 	try {
-		// Get current cached domains by listing all keys
-		const listResult = await env.DISPOSABLE_DOMAINS.list()
-		const cachedDomains = new Set<string>(listResult.keys.map((key) => key.name))
+		// Get current cached domains from R2 text file instead of listing KV keys
+		const R2_FILE_KEY = 'disposable-domains.txt'
+		const cachedDomains = new Set<string>()
+		let isFirstRun = false
+
+		try {
+			const r2Object = await env.SYNC_DATA.get(R2_FILE_KEY)
+			if (r2Object) {
+				const text = await r2Object.text()
+				text
+					.split('\n')
+					.map((line) => line.trim())
+					.filter((line) => line.length > 0)
+					.forEach((domain) => cachedDomains.add(domain))
+				console.log(`Loaded ${cachedDomains.size} domains from R2 cache`)
+			} else {
+				isFirstRun = true
+				console.log('No R2 cache found - this is the first run')
+			}
+		} catch (error) {
+			isFirstRun = true
+			console.log('Error reading R2 cache - treating as first run:', error)
+		}
 
 		// Fetch from all sources in parallel
 		const responses = await Promise.allSettled(
@@ -72,8 +92,8 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 
 		results = insertPayload
 
-		// Safety check to abort if too many removals
-		if (cachedDomains.size > 1000 && removed.length > cachedDomains.size * 0.1) {
+		// Safety check to abort if too many removals (skip on first run)
+		if (!isFirstRun && cachedDomains.size > 1000 && removed.length > cachedDomains.size * 0.1) {
 			console.error(`Sync aborted: Removing too many domains: ${removed.length}`)
 			await client.from('disposable_domain_sync_log').insert({
 				...insertPayload,
@@ -81,6 +101,10 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 				success: false
 			})
 			return jsonResponse(results)
+		}
+
+		if (isFirstRun) {
+			console.log(`First run: Loading ${allDomains.size} domains into cache`)
 		}
 
 		// ============================================================
@@ -129,6 +153,16 @@ export async function syncDisposableDomains(env: Env): Promise<Response> {
 		if (failedOpsCount === 0) {
 			console.log(`Successfully completed ${kvOperations.length} KV operations`)
 		}
+
+		// Update R2 cache with the new domain list
+		const sortedDomains = Array.from(allDomains).sort()
+		const domainsText = sortedDomains.join('\n')
+		await env.SYNC_DATA.put(R2_FILE_KEY, domainsText, {
+			httpMetadata: {
+				contentType: 'text/plain'
+			}
+		})
+		console.log(`Updated R2 cache with ${allDomains.size} domains`)
 
 		// Store metadata about the sync
 		await env.DISPOSABLE_DOMAINS.put(
