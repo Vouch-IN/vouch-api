@@ -269,12 +269,12 @@ export async function syncIPLists(env: Env): Promise<Response> {
 			})
 		}
 
-		// Execute all KV operations with concurrency limit (100 concurrent operations)
+		// Execute all KV operations with concurrency limit (20 concurrent operations)
 		console.log(`Executing ${kvOperations.length} KV operations with concurrency limit...`)
 
 		let failedOpsCount = 0
 		await pAll(kvOperations, {
-			concurrency: 100,
+			concurrency: 20,
 			stopOnError: false
 		}).catch((errors: unknown) => {
 			// pAll throws AggregateError if stopOnError is false and there are failures
