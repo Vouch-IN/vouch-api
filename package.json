@@ -20,21 +20,21 @@
 		"sync-kv": "export $(cat .dev.vars | xargs) && pnpm tsx scripts/sync-local-kv.ts"
 	},
 	"dependencies": {
-		"@supabase/supabase-js": "^2.76.0",
+		"@supabase/supabase-js": "^2.81.1",
 		"p-all": "^5.0.1",
 		"p-retry": "^7.1.0"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.38.0",
-		"eslint": "^9.38.0",
+		"@eslint/js": "^9.39.1",
+		"eslint": "^9.39.1",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-perfectionist": "^4.15.1",
 		"jiti": "^2.6.1",
 		"prettier": "^3.6.2",
-		"supabase": "^2.54.11",
+		"supabase": "^2.58.5",
 		"tslib": "^2.8.1",
 		"typescript": "^5.9.3",
-		"typescript-eslint": "^8.46.2",
-		"wrangler": "^4.43.0"
+		"typescript-eslint": "^8.46.4",
+		"wrangler": "^4.47.0"
 	}
 }
