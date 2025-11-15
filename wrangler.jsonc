@@ -57,6 +57,12 @@
 			"id": "3ee3843d171b48f5941fe53e19608e70"
 		}
 	],
+	"r2_buckets": [
+		{
+			"bucket_name": "prod-sync-data",
+			"binding": "SYNC_DATA"
+		}
+	],
 	"env": {
 		"production": {
 			"name": "vouch-api-production",
