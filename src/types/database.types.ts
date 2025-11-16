@@ -526,11 +526,9 @@ export type Database = {
 					fingerprint_id: string | null
 					id: string
 					ip_address: unknown
-					is_valid: boolean
 					latency_ms: number | null
 					project_id: string | null
 					recommendation: string
-					risk_score: number
 					signals: string[]
 				}
 				Insert: {
@@ -541,11 +539,9 @@ export type Database = {
 					fingerprint_id?: string | null
 					id?: string
 					ip_address?: unknown
-					is_valid: boolean
 					latency_ms?: number | null
 					project_id?: string | null
 					recommendation: string
-					risk_score: number
 					signals?: string[]
 				}
 				Update: {
@@ -556,11 +552,9 @@ export type Database = {
 					fingerprint_id?: string | null
 					id?: string
 					ip_address?: unknown
-					is_valid?: boolean
 					latency_ms?: number | null
 					project_id?: string | null
 					recommendation?: string
-					risk_score?: number
 					signals?: string[]
 				}
 				Relationships: [
@@ -603,17 +597,16 @@ export type Database = {
 			}
 			validation_logs_daily: {
 				Row: {
-					approved: number | null
+					allowed: number | null
 					avg_latency_ms: number | null
-					avg_risk_score: number | null
+					blocked: number | null
 					count: number | null
 					date: string | null
-					failed: number | null
 					first_validation: string | null
+					flagged: number | null
 					last_refreshed: string | null
 					last_validation: string | null
 					project_id: string | null
-					rejected: number | null
 				}
 				Relationships: [
 					{
@@ -650,17 +643,16 @@ export type Database = {
 			get_all_validation_logs_daily: {
 				Args: { p_end_date?: string; p_limit?: number; p_start_date?: string }
 				Returns: {
-					approved: number
+					allowed: number
 					avg_latency_ms: number
-					avg_risk_score: number
+					blocked: number
 					count: number
 					date: string
-					failed: number
 					first_validation: string
+					flagged: number
 					last_refreshed: string
 					last_validation: string
 					project_id: string
-					rejected: number
 				}[]
 			}
 			get_project_entitlements: {
@@ -690,17 +682,16 @@ export type Database = {
 					p_start_date?: string
 				}
 				Returns: {
-					approved: number
+					allowed: number
 					avg_latency_ms: number
-					avg_risk_score: number
+					blocked: number
 					count: number
 					date: string
-					failed: number
 					first_validation: string
+					flagged: number
 					last_refreshed: string
 					last_validation: string
 					project_id: string
-					rejected: number
 				}[]
 			}
 			has_project_access: {
