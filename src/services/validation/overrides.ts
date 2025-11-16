@@ -1,5 +1,15 @@
 import type { ValidationResults } from '../../types'
 
+/**
+ * Apply whitelist/blacklist overrides to validation results
+ * Priority rules (specific to general):
+ * 1. Specific email match (user@example.com)
+ * 2. Domain match (example.com)
+ *
+ * Examples:
+ * - Whitelist: admin@test.com, Blacklist: test.com -> admin@test.com is ALLOWED (specific email overrides domain)
+ * - Whitelist: example.com, Blacklist: user@example.com -> user@example.com is BLOCKED (specific email overrides domain)
+ */
 export function applyOverrides(
 	validationResults: ValidationResults,
 	emailInput: string,
@@ -8,33 +18,80 @@ export function applyOverrides(
 ) {
 	const email = emailInput.trim().toLowerCase()
 
-	// If email matches whitelist, override to always valid and allow
-	if (matchesEntry(email, whitelist)) {
+	// Check for specific email matches first (highest priority)
+	const whitelistedEmail = whitelist.some(
+		(entry) => entry.includes('@') && entry.toLowerCase() === email
+	)
+	const blacklistedEmail = blacklist.some(
+		(entry) => entry.includes('@') && entry.toLowerCase() === email
+	)
+
+	// Specific email rules take absolute priority
+	if (whitelistedEmail) {
 		return {
 			...validationResults,
+			checks: {
+				...validationResults,
+				whitelist: {
+					latency: 0,
+					pass: true
+				}
+			},
 			signals: [...validationResults.signals, 'whitelisted']
 		}
 	}
 
-	// If email matches blacklist, force block and max risk score
-	if (matchesEntry(email, blacklist)) {
+	if (blacklistedEmail) {
 		return {
 			...validationResults,
+			checks: {
+				...validationResults,
+				blacklist: {
+					latency: 0,
+					pass: true
+				}
+			},
 			signals: [...validationResults.signals, 'blacklisted']
 		}
 	}
 
-	// Else, no override
-	return validationResults
-}
+	// Check for domain matches (lower priority)
+	const domain = email.split('@')[1]
+	const whitelistedDomain = whitelist.some(
+		(entry) => !entry.includes('@') && entry.toLowerCase() === domain
+	)
+	const blacklistedDomain = blacklist.some(
+		(entry) => !entry.includes('@') && entry.toLowerCase() === domain
+	)
 
-function matchesEntry(value: string, entries: string[]): boolean {
-	return entries.some((entry) => {
-		if (entry.includes('@')) {
-			// Full email match
-			return entry.toLowerCase() === value.toLowerCase()
+	if (whitelistedDomain) {
+		return {
+			...validationResults,
+			checks: {
+				...validationResults,
+				whitelist: {
+					latency: 0,
+					pass: true
+				}
+			},
+			signals: [...validationResults.signals, 'whitelisted']
 		}
-		// Domain match
-		return value.toLowerCase().endsWith(`@${entry.toLowerCase()}`)
-	})
+	}
+
+	if (blacklistedDomain) {
+		return {
+			...validationResults,
+			checks: {
+				...validationResults,
+				blacklist: {
+					latency: 0,
+					pass: true
+				}
+			},
+			signals: [...validationResults.signals, 'blacklisted']
+		}
+	}
+
+	// No override
+	return validationResults
 }

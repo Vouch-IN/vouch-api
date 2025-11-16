@@ -1,4 +1,4 @@
-import { DEFAULT_RISK_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_VALIDATIONS } from '../constants'
+import { DEFAULT_VALIDATIONS } from '../constants'
 import { createClient } from '../lib/supabase'
 import { handleError } from '../middleware'
 import { type ProjectSettings, type Tables } from '../types'
@@ -129,10 +129,6 @@ async function handleProjectChange(
 						validationsLimit: 1000
 					},
 			projectId: data.id,
-			riskWeights: {
-				...DEFAULT_RISK_WEIGHTS,
-				...settings?.riskWeights
-			},
 			subscription: subscription
 				? {
 						billingCycle: subscription.interval,
@@ -141,10 +137,6 @@ async function handleProjectChange(
 						status: subscription.status
 					}
 				: undefined,
-			thresholds: {
-				...DEFAULT_THRESHOLDS,
-				...settings?.thresholds
-			},
 			validations: {
 				...DEFAULT_VALIDATIONS,
 				...settings?.validations

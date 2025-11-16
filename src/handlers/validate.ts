@@ -1,4 +1,4 @@
-import { DEFAULT_RISK_WEIGHTS, DEFAULT_THRESHOLDS, DEFAULT_VALIDATIONS } from '../constants'
+import { DEFAULT_VALIDATIONS } from '../constants'
 import {
 	addCorsHeaders,
 	authenticate,
@@ -9,9 +9,15 @@ import {
 import { recordValidationLog } from '../services/logging'
 import { recordMetric } from '../services/metrics'
 import { checkUsageQuota, incrementUsage, updateApiKeyLastUsed } from '../services/project'
-import { calculateRiskScore, determineRecommendation } from '../services/risk'
 import { applyOverrides, runValidations } from '../services/validation'
-import { type ProjectSettings, type ValidationRequest, type ValidationResponse } from '../types'
+import { determineRecommendation } from '../services/validation/recommendation'
+import {
+	type ProjectSettings,
+	ValidationAction,
+	type ValidationRequest,
+	type ValidationResponse,
+	type ValidationToggles
+} from '../types'
 import { createLogger, errorResponse, getCachedData, jsonResponse, validateOrigin } from '../utils'
 
 const logger = createLogger({ handler: 'validate' })
@@ -75,7 +81,7 @@ export async function handleValidation(
 		// Check rate limit based on key type and Check usage quota
 		const [rate, usageCheck] = await Promise.all([
 			checkRateLimit(auth.projectId, auth.apiKey.type === 'client' ? 'client' : 'server', env, ctx),
-			checkUsageQuota(auth.projectId, projectSettings?.entitlements, env)
+			checkUsageQuota(auth.projectId, projectSettings.entitlements, env)
 		])
 
 		const rateLimitHeaders = {
@@ -103,31 +109,25 @@ export async function handleValidation(
 		}
 
 		// 7. Determine which validations to run (merge project defaults with request overrides)
-		const enabledValidations = {
+		const enabledValidations: ValidationToggles = {
 			...DEFAULT_VALIDATIONS,
-			...projectSettings?.validations,
+			...projectSettings.validations,
 			...body.validations
 		}
 
-		// 8. Load thresholds for risk scoring (merge project defaults with settings)
-		const thresholds = { ...DEFAULT_THRESHOLDS, ...projectSettings?.thresholds }
-
-		// 9. Load risk weights for scoring signals (merge project defaults with settings)
-		const riskWeights = { ...DEFAULT_RISK_WEIGHTS, ...projectSettings?.riskWeights }
-
-		// 10. Extract email from request body, fallback to null if not present
+		// 8. Extract email from request body, fallback to null if not present
 		const email = body.email.toLowerCase()
 
-		// 11. Extract fingerprint hash from request body, fallback to null if not present
+		// 9. Extract fingerprint hash from request body, fallback to null if not present
 		const fingerprintHash = body.fingerprint?.hash ?? null
 
-		// 12. Get the client IP from headers, check both Cloudflare and forwarded headers
+		// 10. Get the client IP from headers, check both Cloudflare and forwarded headers
 		const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')
 
-		// 13. Get ASN (Autonomous System Number) from Cloudflare request object if available
+		// 11. Get ASN (Autonomous System Number) from Cloudflare request object if available
 		const asn = request.cf?.asn
 
-		// 14. Run all enabled validations and get results including checks, previous signups and risk signals
+		// 12. Run all enabled validations and get results including checks, previous signups and risk signals
 		const validationResults = await runValidations(
 			auth.projectId,
 			email,
@@ -139,39 +139,32 @@ export async function handleValidation(
 			auth.apiKey.type
 		)
 
-		// 15. Check whitelist/blacklist overrides
+		// 13. Check whitelist/blacklist overrides
 		const finalResults = applyOverrides(
 			validationResults,
 			email,
-			projectSettings?.whitelist ?? [],
-			projectSettings?.blacklist ?? []
+			projectSettings.whitelist ?? [],
+			projectSettings.blacklist ?? []
 		)
 
-		// 16. Calculate overall risk score based on signals and configured risk weights
-		const riskScore = calculateRiskScore(finalResults.signals, riskWeights)
-
-		// 17. Determine recommendation based on risk score and threshold settings
-		const recommendation = determineRecommendation(riskScore, thresholds)
-
-		// 18. Determine if email is valid based on risk score threshold and syntax check
-		const isValid = riskScore < thresholds.flag && !finalResults.signals.includes('invalid_syntax')
+		// 14. Determine recommendation based on signals (allow/flag/block)
+		const recommendation = determineRecommendation(enabledValidations, finalResults.checks)
 
 		// Log only problematic validations (blocked or flagged)
-		if (recommendation === 'block' || recommendation === 'flag') {
+		if (recommendation === ValidationAction.BLOCK || recommendation === ValidationAction.FLAG) {
 			requestLogger.warn('Validation blocked/flagged', {
 				recommendation,
-				riskScore,
 				signals: finalResults.signals
 			})
 		}
 
-		// 19. Increment usage counter (Durable Object)
+		// 15. Increment usage counter (Durable Object)
 		ctx.waitUntil(incrementUsage(auth.projectId, env))
 
-		// 20. Calculate total processing time for the request
+		// 16. Calculate total processing time for the request
 		const totalLatency = performance.now() - startedAt
 
-		// 21. Record validation log (async, non-blocking)
+		// 17. Record validation log (async, non-blocking)
 		ctx.waitUntil(
 			recordValidationLog(
 				auth.projectId,
@@ -179,17 +172,15 @@ export async function handleValidation(
 				finalResults,
 				fingerprintHash,
 				ip,
-				riskScore,
 				recommendation,
 				totalLatency,
-				isValid,
 				env
 			).catch((error: unknown) => {
 				requestLogger.error('Failed to log validation', error)
 			})
 		)
 
-		// 22. Record metrics (Prometheus)
+		// 18. Record metrics (Prometheus)
 		ctx.waitUntil(
 			recordMetric(env, 'vouch_validations_total', 1, {
 				project_id: auth.projectId,
@@ -202,7 +193,7 @@ export async function handleValidation(
 			})
 		)
 
-		// 23. Update API key last_used_at (async, non-blocking)
+		// 19. Update API key last_used_at (async, non-blocking)
 		ctx.waitUntil(
 			updateApiKeyLastUsed(auth.apiKey.id, env).catch((error: unknown) => {
 				requestLogger.error('Failed to update API key last_used_at', error)
@@ -211,14 +202,12 @@ export async function handleValidation(
 
 		const response: ValidationResponse = {
 			checks: finalResults.checks,
-			isValid,
 			metadata: {
 				fingerprintId: fingerprintHash,
 				previousSignups: finalResults.deviceData?.previousSignups ?? 0,
 				totalLatency
 			},
 			recommendation,
-			riskScore,
 			signals: finalResults.signals
 		}
 

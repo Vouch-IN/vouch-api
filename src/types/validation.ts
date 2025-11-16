@@ -1,7 +1,7 @@
 export enum ValidationAction {
+	ALLOW = 'allow',
 	BLOCK = 'block',
-	FLAG = 'flag',
-	INACTIVE = 'inactive'
+	FLAG = 'flag'
 }
 
 export type CheckResult = {
@@ -46,11 +46,9 @@ export type ValidationLog = {
 	email_hash: string
 	fingerprint_id: null | string
 	ip_address: null | string
-	is_valid: boolean
 	latency_ms: number
 	project_id: string
 	recommendation: string
-	risk_score: number
 	signals: string[]
 }
 
@@ -63,14 +61,12 @@ export type ValidationRequest = {
 
 export type ValidationResponse = {
 	checks: Record<string, CheckResult>
-	isValid: boolean
 	metadata: {
 		fingerprintId: null | string
 		previousSignups: number
 		totalLatency: number
 	}
 	recommendation: string
-	riskScore: number
 	signals: string[]
 }
 
