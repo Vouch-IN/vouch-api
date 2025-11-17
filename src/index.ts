@@ -1,4 +1,10 @@
-import { flushAllLogQueues, syncDisposableDomains, syncIPLists } from './crons'
+import {
+	flushAllLogQueues,
+	initDisposableDomains,
+	initIPLists,
+	syncDisposableDomains,
+	syncIPLists
+} from './crons'
 import { handleHealth, handleValidation, handleWebhook } from './handlers'
 import {
 	handleDebugAddRoleEmail,
@@ -66,6 +72,12 @@ export default {
 				if (url.pathname === '/debug/sync-domains') {
 					return await handleDebugSyncDomains(request, env)
 				}
+				if (url.pathname === '/debug/init-disposable-domains') {
+					return await initDisposableDomains(env)
+				}
+				if (url.pathname === '/debug/init-ip-list') {
+					return await initIPLists(env)
+				}
 				if (url.pathname === '/debug/sync-ip-lists') {
 					return await handleDebugSyncIPLists(request, env)
 				}
@@ -107,7 +119,7 @@ export default {
 			// Run disposable domain sync and IP reputation sync daily at 2am UTC
 			if (cron === '0 2 * * *') {
 				await syncDisposableDomains(env)
-				await syncIPLists(env)
+				// await syncIPLists(env)
 			}
 		} catch (error) {
 			logger.error('Scheduled job failed', error, { cron: controller.cron })

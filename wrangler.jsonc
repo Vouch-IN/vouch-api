@@ -79,7 +79,11 @@
 			],
 			"vars": {
 				"SUPABASE_URL": "https://mnxbnpmjdwpfrdmkzheq.supabase.co",
-				"ENVIRONMENT": "production"
+				"ENVIRONMENT": "production",
+				"CF_ACCOUNT_ID": "6d4f1d5f2a1db6a22131641a4b57ef22",
+				"DISPOSABLE_DOMAINS_NAMESPACE_ID": "81fe48b7331840fc85fd0389f48b4fca",
+				"VPN_IPS_NAMESPACE_ID": "95415ccbf1514d0eaba4b6f66106ff76",
+				"TOR_IPS_NAMESPACE_ID": "3ee3843d171b48f5941fe53e19608e70"
 			},
 			"kv_namespaces": [
 				{
@@ -139,7 +143,11 @@
 			},
 			"vars": {
 				"SUPABASE_URL": "https://jdgcsdazjypgabvkiwky.supabase.co",
-				"ENVIRONMENT": "development"
+				"ENVIRONMENT": "development",
+				"CF_ACCOUNT_ID": "6d4f1d5f2a1db6a22131641a4b57ef22",
+				"DISPOSABLE_DOMAINS_NAMESPACE_ID": "2cc63f40ff594f5d903cbc56dcf7c902",
+				"VPN_IPS_NAMESPACE_ID": "57a8145e67dc4b5099da0086d26203e8",
+				"TOR_IPS_NAMESPACE_ID": "e0adb877b99e4a48b645a83b7091a582"
 			},
 			"kv_namespaces": [
 				{
