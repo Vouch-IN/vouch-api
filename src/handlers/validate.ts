@@ -122,10 +122,20 @@ export async function handleValidation(
 		const fingerprintHash = body.fingerprint?.hash ?? null
 
 		// 10. Get the client IP from headers, check both Cloudflare and forwarded headers
-		const ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')
+		let ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')
 
 		// 11. Get ASN (Autonomous System Number) from Cloudflare request object if available
 		const asn = request.cf?.asn
+		const country = (request.cf?.country as string) ?? undefined
+		let userAgent = request.headers.get('user-agent')
+
+		// Allow server-side keys to override IP and User Agent
+		if (auth.apiKey.type === 'server') {
+			if (body.ip) ip = body.ip
+			if (body.userAgent) userAgent = body.userAgent
+		}
+
+		const deviceType = getDeviceType(userAgent)
 
 		// 12. Run all enabled validations and get results including checks, previous signups and risk signals
 		const validationResults = await runValidations(
@@ -172,6 +182,8 @@ export async function handleValidation(
 				finalResults,
 				fingerprintHash,
 				ip,
+				country,
+				deviceType,
 				recommendation,
 				totalLatency,
 				env
@@ -228,4 +240,13 @@ export async function handleValidation(
 		)
 		return handleError(error)
 	}
+}
+
+function getDeviceType(userAgent: null | string): string {
+	if (!userAgent) return 'unknown'
+	const ua = userAgent.toLowerCase()
+	if (ua.includes('bot') || ua.includes('crawler') || ua.includes('spider')) return 'bot'
+	if (ua.includes('tablet') || ua.includes('ipad')) return 'tablet'
+	if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) return 'mobile'
+	return 'desktop'
 }

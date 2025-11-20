@@ -8,6 +8,8 @@ export async function recordValidationLog(
 	validationResults: ValidationResults,
 	fingerprintHash: null | string,
 	ip: null | string,
+	country: string | undefined,
+	deviceType: string | undefined,
 	recommendation: ValidationAction,
 	totalLatency: number,
 	env: Env
@@ -20,7 +22,9 @@ export async function recordValidationLog(
 
 	const log: ValidationLog = {
 		checks: validationResults.checks,
+		country,
 		created_at: new Date().toISOString(),
+		device_type: deviceType,
 		email_encrypted: emailEncrypted,
 		email_hash: emailHash,
 		fingerprint_id: fingerprintHash,

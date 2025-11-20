@@ -41,7 +41,9 @@ export type IPData = {
 
 export type ValidationLog = {
 	checks: Record<string, CheckResult>
+	country?: string
 	created_at: string
+	device_type?: string
 	email_encrypted: string
 	email_hash: string
 	fingerprint_id: null | string
@@ -55,7 +57,9 @@ export type ValidationLog = {
 export type ValidationRequest = {
 	email: string
 	fingerprint?: DeviceFingerprint
+	ip?: string
 	projectId: string
+	userAgent?: string
 	validations?: Partial<ValidationToggles>
 }
 
