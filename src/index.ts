@@ -119,7 +119,7 @@ export default {
 			// Run disposable domain sync and IP reputation sync daily at 2am UTC
 			if (cron === '0 2 * * *') {
 				await syncDisposableDomains(env)
-				// await syncIPLists(env)
+				await syncIPLists(env)
 			}
 		} catch (error) {
 			logger.error('Scheduled job failed', error, { cron: controller.cron })
