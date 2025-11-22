@@ -5,7 +5,7 @@ import {
 	syncDisposableDomains,
 	syncIPLists
 } from './crons'
-import { handleHealth, handleMixpanelRequest, handleValidation, handleWebhook } from './handlers'
+import { handleHealth, handleValidation, handleWebhook } from './handlers'
 import {
 	handleDebugAddRoleEmail,
 	handleDebugFlushLogs,
@@ -99,10 +99,6 @@ export default {
 				if (url.pathname === '/debug/role-emails/set') {
 					return await handleDebugSetRoleEmails(request, env)
 				}
-			}
-
-			if (url.pathname.startsWith('/__mix')) {
-				return await handleMixpanelRequest(request)
 			}
 
 			logger.warn('Route not found', { path: url.pathname })
