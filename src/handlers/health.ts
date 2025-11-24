@@ -177,20 +177,20 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 				},
 				timeout: 800
 			},
-		validation_role: {
-			degradedAt: 10,
-			fn: async () => {
-				try {
-					// Test role email detection (fetches from KV)
-					const isRole = await detectRoleEmail('admin', env)
-					const notRole = !(await detectRoleEmail('john.doe', env))
-					return isRole && notRole
-				} catch {
-					return Promise.resolve(false)
-				}
+			validation_role: {
+				degradedAt: 50,
+				fn: async () => {
+					try {
+						// Test role email detection (fetches from KV)
+						const isRole = await detectRoleEmail('admin', env)
+						const notRole = !(await detectRoleEmail('john.doe', env))
+						return isRole && notRole
+					} catch {
+						return Promise.resolve(false)
+					}
+				},
+				timeout: 500 // Increased timeout for KV fetch
 			},
-			timeout: 500 // Increased timeout for KV fetch
-		},
 			validation_smtp: {
 				degradedAt: 400,
 				fn: async () => {
@@ -249,6 +249,37 @@ export async function handleHealth(_request: Request, env: Env): Promise<Respons
 			return [result.reason?.name ?? 'unknown', { latency: 0, status: 'down' as const }]
 		})
 	) as Record<string, { latency: number; status: 'degraded' | 'down' | 'operational' }>
+
+	// Retry logic: retry up to 3 times for components that are degraded or down
+	const MAX_RETRIES = 3
+	for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+		const failedComponents = Object.entries(components).filter(
+			([_, result]) => result.status === 'degraded' || result.status === 'down'
+		)
+
+		if (failedComponents.length === 0) break // All checks passed, no need to retry
+
+		// Retry failed components
+		const retrySettled = await Promise.allSettled(
+			failedComponents.map(async ([name, _]) => {
+				const def = tests[name]
+				return [name, await runCheck(def.fn, def.timeout, def.degradedAt)] as const
+			})
+		)
+
+		// Update components with retry results (only if they improved)
+		for (const result of retrySettled) {
+			if (result.status === 'fulfilled') {
+				const [name, newResult] = result.value
+				const oldResult = components[name]
+				// Update if the new result is better (operational > degraded > down)
+				const statusPriority = { degraded: 2, down: 1, operational: 3 }
+				if (statusPriority[newResult.status] > statusPriority[oldResult.status]) {
+					components[name] = newResult
+				}
+			}
+		}
+	}
 
 	// Compute overall status per rules
 	const coreNames = new Set(['domains', 'fingerprint', 'supabase', 'workers'])
