@@ -1,4 +1,4 @@
-import { type CheckResult, type ValidationAction, type ValidationToggles } from '../../types'
+import { type CheckResult, ValidationAction, type ValidationToggles } from '../../types'
 
 /**
  * Determine the final recommendation (ALLOW/FLAG/BLOCK) based on validation results
