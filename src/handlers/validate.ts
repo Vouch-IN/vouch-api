@@ -62,21 +62,21 @@ export async function handleValidation(
 		])
 
 		if (!auth.success || !auth.apiKey || !auth.projectId) {
-			requestLogger.warn(auth.error ?? 'Unauthorized')
+			logger.warn(auth.error ?? 'Unauthorized')
 			return errorResponse('unauthorized', auth.error ?? 'Unauthorized', 401)
 		}
 
-		if (auth.projectId !== projectSettings.projectId) {
-			requestLogger.warn('Invalid Project Id')
-			return errorResponse('unauthorized', 'Invalid Project Id', 401)
-		}
-
-		// Create request-scoped logger with context
+		// Create request-scoped logger with context (now that auth succeeded)
 		const requestLogger = logger.child({
 			keyId: auth.apiKey.id,
 			keyType: auth.apiKey.type,
 			projectId: auth.projectId
 		})
+
+		if (auth.projectId !== projectSettings.projectId) {
+			requestLogger.warn('Invalid Project Id')
+			return errorResponse('unauthorized', 'Invalid Project Id', 401)
+		}
 
 		// Check rate limit based on key type and Check usage quota
 		const [rate, usageCheck] = await Promise.all([
