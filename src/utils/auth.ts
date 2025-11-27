@@ -68,11 +68,10 @@ export function validateOrigin(
 		return { error: 'Origin header required for client keys', valid: false }
 	}
 
-	const allowedDomains = apiKey.allowed_domains
-
-	if (!allowedDomains || allowedDomains.length === 0) {
-		return { error: 'No allowed domains configured for this API key', valid: false }
-	}
+	// If no allowed domains configured, default to wildcard (allow all domains)
+	const allowedDomains = apiKey.allowed_domains && apiKey.allowed_domains.length > 0
+		? apiKey.allowed_domains
+		: ['*']
 
 	let requestDomain: string
 	try {
