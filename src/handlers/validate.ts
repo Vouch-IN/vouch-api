@@ -119,7 +119,7 @@ export async function handleValidation(
 		const email = body.email.toLowerCase()
 
 		// 9. Extract fingerprint hash from request body, fallback to null if not present
-		const fingerprintHash = body.fingerprint?.hash ?? null
+		const fingerprintHash = body.fingerprintHash ?? null
 
 		// 10. Get the client IP from headers, check both Cloudflare and forwarded headers
 		let ip = request.headers.get('CF-Connecting-IP') ?? request.headers.get('X-Forwarded-For')

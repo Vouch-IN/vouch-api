@@ -20,19 +20,6 @@ export type DeviceData = {
 	previousSignups: number
 }
 
-export type DeviceFingerprint = {
-	canvas?: string
-	cpuCores?: number
-	deviceMemory?: number
-	fonts?: string[]
-	hash?: string
-	screen: string
-	timezone: string
-	touchSupport?: boolean
-	userAgent: string
-	webgl?: string
-}
-
 export type IPData = {
 	ip: string
 	isFraud: boolean
@@ -56,7 +43,7 @@ export type ValidationLog = {
 
 export type ValidationRequest = {
 	email: string
-	fingerprint?: DeviceFingerprint
+	fingerprintHash?: string
 	ip?: string
 	projectId: string
 	userAgent?: string

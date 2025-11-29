@@ -11,97 +11,129 @@
  */
 
 export const DATACENTER_ASNS = new Set([
-	// Amazon Web Services (AWS)
-	16509, // Amazon-02
-	14618, // Amazon-AES
-	8987,  // Amazon-01
-
-	// Google Cloud Platform (GCP)
-	15169, // Google LLC
-	36040, // Google Cloud
-	396982, // Google Cloud
-
 	// Microsoft Azure
 	8075,  // Microsoft Corporation
+	8987,  // Amazon-01
 	12076, // Microsoft Azure
 
+	// Scaleway
+	12876, // Online S.A.S. (Scaleway)
+	// Cloudflare (Workers, Pages)
+	13335, // Cloudflare Inc
 	// DigitalOcean
 	14061, // DigitalOcean LLC
 
-	// Linode
-	63949, // Linode
+	14618, // Amazon-AES
+	// Atlantic.Net
+	14999, // Atlantic.Net Inc
 
-	// Vultr
-	20473, // AS-CHOOPA (Vultr)
-
-	// Hetzner
-	24940, // Hetzner Online GmbH
+	// Google Cloud Platform (GCP)
+	15169, // Google LLC
 
 	// OVH
 	16276, // OVH SAS
 
-	// Cloudflare (Workers, Pages)
-	13335, // Cloudflare Inc
+	// Amazon Web Services (AWS)
+	16509, // Amazon-02
 
-	// Oracle Cloud
-	31898, // Oracle Corporation
-
-	// IBM Cloud
-	36351, // IBM Cloud
-
-	// Alibaba Cloud
-	45102, // Alibaba (US) Technology Co., Ltd.
-	37963, // Alibaba (China) Technology Co., Ltd.
-
-	// Tencent Cloud
-	132203, // Tencent Building, Kejizhongyi Avenue
-	45090,  // Tencent Cloud Computing
-
-	// Scaleway
-	12876, // Online S.A.S. (Scaleway)
-
-	// Contabo
-	51167, // Contabo GmbH
-
-	// Kamatera
-	58065, // Kamatera Inc
-
-	// Atlantic.Net
-	14999, // Atlantic.Net Inc
-
-	// DreamHost
-	26347, // DreamHost
-
-	// HostGator
-	27257, // Unified Layer (HostGator)
-
-	// GoDaddy
-	26496, // GoDaddy.com LLC
-
-	// Rackspace
-	27357, // Rackspace Hosting
-
-	// Aruba Cloud
-	31034, // Aruba S.p.A.
-
-	// Liquid Web
-	32244, // Liquid Web L.L.C
-
-	// A2 Hosting
-	55293, // A2 Hosting
+	// Vultr
+	20473, // AS-CHOOPA (Vultr)
 
 	// InMotion Hosting
 	22611, // InMotion Hosting
 
-	// SiteGround
-	60781, // SiteGround Hosting Ltd
-
 	// Namecheap
 	22612, // Namecheap Inc
 
+	// Hetzner
+	24940, // Hetzner Online GmbH
+
+	// DreamHost
+	26347, // DreamHost
+
+	// GoDaddy
+	26496, // GoDaddy.com LLC
+	// HostGator
+	27257, // Unified Layer (HostGator)
+
+	// Rackspace
+	27357, // Rackspace Hosting
+	// Aruba Cloud
+	31034, // Aruba S.p.A.
+
+	// Oracle Cloud
+	31898, // Oracle Corporation
+
+	// Liquid Web
+	32244, // Liquid Web L.L.C
+
+	36040, // Google Cloud
+
+	// IBM Cloud
+	36351, // IBM Cloud
+
+	37963, // Alibaba (China) Technology Co., Ltd.
+
 	// PythonAnywhere
-	41495  // FreeBit Co Ltd (PythonAnywhere)
+	41495,  // FreeBit Co Ltd (PythonAnywhere)
+
+	45090,  // Tencent Cloud Computing
+
+	// Alibaba Cloud
+	45102, // Alibaba (US) Technology Co., Ltd.
+
+	// Contabo
+	51167, // Contabo GmbH
+
+	// A2 Hosting
+	55293, // A2 Hosting
+
+	// Kamatera
+	58065, // Kamatera Inc
+
+	// SiteGround
+	60781, // SiteGround Hosting Ltd
+
+	// Linode
+	63949, // Linode
+
+	// Tencent Cloud
+	132203, // Tencent Building, Kejizhongyi Avenue
+
+	396982 // Google Cloud
 ])
+
+/**
+ * Get the network name for an ASN (for logging/debugging)
+ */
+export function getASNName(asn: number): string {
+	const names: Record<number, string> = {
+		8075: 'Microsoft Azure',
+		8987: 'AWS',
+		12076: 'Microsoft Azure',
+		12876: 'Scaleway',
+		13335: 'Cloudflare',
+		14061: 'DigitalOcean',
+		14618: 'AWS',
+		15169: 'Google Cloud',
+		16276: 'OVH',
+		16509: 'AWS',
+		20473: 'Vultr',
+		24940: 'Hetzner',
+		31898: 'Oracle Cloud',
+		36040: 'Google Cloud',
+		36351: 'IBM Cloud',
+		37963: 'Alibaba Cloud',
+		45090: 'Tencent Cloud',
+		45102: 'Alibaba Cloud',
+		51167: 'Contabo',
+		63949: 'Linode',
+		132203: 'Tencent Cloud',
+		396982: 'Google Cloud'
+	}
+
+	return names[asn] || `ASN ${asn}`
+}
 
 /**
  * Check if an ASN belongs to a datacenter/hosting provider
@@ -109,36 +141,4 @@ export const DATACENTER_ASNS = new Set([
 export function isDatacenterASN(asn: number | undefined): boolean {
 	if (!asn || typeof asn !== 'number') return false
 	return DATACENTER_ASNS.has(asn)
-}
-
-/**
- * Get the network name for an ASN (for logging/debugging)
- */
-export function getASNName(asn: number): string {
-	const names: Record<number, string> = {
-		16509: 'AWS',
-		14618: 'AWS',
-		8987: 'AWS',
-		15169: 'Google Cloud',
-		36040: 'Google Cloud',
-		396982: 'Google Cloud',
-		8075: 'Microsoft Azure',
-		12076: 'Microsoft Azure',
-		14061: 'DigitalOcean',
-		63949: 'Linode',
-		20473: 'Vultr',
-		24940: 'Hetzner',
-		16276: 'OVH',
-		13335: 'Cloudflare',
-		31898: 'Oracle Cloud',
-		36351: 'IBM Cloud',
-		45102: 'Alibaba Cloud',
-		37963: 'Alibaba Cloud',
-		132203: 'Tencent Cloud',
-		45090: 'Tencent Cloud',
-		12876: 'Scaleway',
-		51167: 'Contabo'
-	}
-
-	return names[asn] || `ASN ${asn}`
 }
