@@ -53,7 +53,7 @@ export type ValidationRequest = {
 export type ValidationResponse = {
 	checks: Record<string, CheckResult>
 	metadata: {
-		fingerprintId: null | string
+		fingerprintHash: null | string
 		previousSignups: number
 		totalLatency: number
 	}

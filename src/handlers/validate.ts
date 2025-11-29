@@ -215,7 +215,7 @@ export async function handleValidation(
 		const response: ValidationResponse = {
 			checks: finalResults.checks,
 			metadata: {
-				fingerprintId: fingerprintHash,
+				fingerprintHash,
 				previousSignups: finalResults.deviceData?.previousSignups ?? 0,
 				totalLatency
 			},
