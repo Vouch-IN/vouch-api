@@ -152,6 +152,23 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 
 	console.log(`📅 Period: ${periodStart} to ${periodEnd}`)
 
+	// Extract discount/coupon information if present
+	let discountCouponId: string | null = null
+	let discountStart: string | null = null
+	let discountEnd: string | null = null
+
+	if (subscription.discount && subscription.discount.coupon) {
+		discountCouponId = subscription.discount.coupon.id
+		discountStart = subscription.discount.start
+			? new Date(subscription.discount.start * 1000).toISOString()
+			: null
+		discountEnd = subscription.discount.end
+			? new Date(subscription.discount.end * 1000).toISOString()
+			: null
+
+		console.log(`🎟️  Discount applied: ${discountCouponId}`)
+	}
+
 	// Find existing entitlement for this project from stripe source
 	const { data: existingEntitlement } = await supabaseAdmin
 		.from('entitlements')
@@ -215,6 +232,9 @@ export async function upsertSubscription(supabaseAdmin, subscription) {
 				currency: priceData?.currency || 'usd',
 				current_period_end: periodEnd,
 				current_period_start: periodStart,
+				discount_coupon_id: discountCouponId,
+				discount_end: discountEnd,
+				discount_start: discountStart,
 				entitlement_id: entitlement?.id || null,
 				id: subscription.id,
 				interval: priceData?.recurring?.interval || null,

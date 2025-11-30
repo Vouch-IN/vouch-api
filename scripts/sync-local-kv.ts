@@ -6,9 +6,9 @@ import type { Database } from '../src/types/database.types'
 // Load from .dev.vars
 config({ path: '.env' })
 
-const SUPABASE_URL = process.env.SUPABASE_URL!
-const SUPABASE_KEY = process.env.SUPABASE_KEY!
-const LOCAL_WEBHOOK_URL = process.env.LOCAL_WEBHOOK_URL || 'http://localhost:8787/webhook'
+const SUPABASE_URL = process.env.SUPABASE_URL
+const SUPABASE_KEY = process.env.SUPABASE_KEY
+const LOCAL_WEBHOOK_URL = process.env.LOCAL_WEBHOOK_URL ?? 'http://localhost:8787/webhook'
 const WEBHOOK_TOKEN = process.env.WEBHOOK_SECRET
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -113,4 +113,4 @@ async function syncProjects() {
 	return projects.length
 }
 
-main()
+void main()

@@ -243,6 +243,63 @@ export type Database = {
 				}
 				Relationships: []
 			}
+			stripe_coupons: {
+				Row: {
+					amount_off: number | null
+					applies_to_product_ids: string[] | null
+					created_at: string
+					currency: string | null
+					deleted_at: string | null
+					duration: string
+					duration_in_months: number | null
+					id: string
+					max_redemptions: number | null
+					metadata: Json | null
+					name: string | null
+					percent_off: number | null
+					redeem_by: string | null
+					times_redeemed: number | null
+					updated_at: string
+					valid: boolean
+				}
+				Insert: {
+					amount_off?: number | null
+					applies_to_product_ids?: string[] | null
+					created_at?: string
+					currency?: string | null
+					deleted_at?: string | null
+					duration: string
+					duration_in_months?: number | null
+					id: string
+					max_redemptions?: number | null
+					metadata?: Json | null
+					name?: string | null
+					percent_off?: number | null
+					redeem_by?: string | null
+					times_redeemed?: number | null
+					updated_at?: string
+					valid?: boolean
+				}
+				Update: {
+					amount_off?: number | null
+					applies_to_product_ids?: string[] | null
+					created_at?: string
+					currency?: string | null
+					deleted_at?: string | null
+					duration?: string
+					duration_in_months?: number | null
+					id?: string
+					max_redemptions?: number | null
+					metadata?: Json | null
+					name?: string | null
+					percent_off?: number | null
+					redeem_by?: string | null
+					times_redeemed?: number | null
+					updated_at?: string
+					valid?: boolean
+				}
+				Relationships: []
+			}
 			stripe_prices: {
 				Row: {
 					active: boolean
@@ -352,6 +409,9 @@ export type Database = {
 					current_period_end: string | null
 					current_period_start: string | null
 					deleted_at: string | null
+					discount_coupon_id: string | null
+					discount_end: string | null
+					discount_start: string | null
 					entitlement_id: string | null
 					id: string
 					interval: string | null
@@ -375,6 +435,9 @@ export type Database = {
 					current_period_end?: string | null
 					current_period_start?: string | null
 					deleted_at?: string | null
+					discount_coupon_id?: string | null
+					discount_end?: string | null
+					discount_start?: string | null
 					entitlement_id?: string | null
 					id: string
 					interval?: string | null
@@ -398,6 +461,9 @@ export type Database = {
 					current_period_end?: string | null
 					current_period_start?: string | null
 					deleted_at?: string | null
+					discount_coupon_id?: string | null
+					discount_end?: string | null
+					discount_start?: string | null
 					entitlement_id?: string | null
 					id?: string
 					interval?: string | null
@@ -412,6 +478,13 @@ export type Database = {
 					updated_at?: string
 				}
 				Relationships: [
+					{
+						foreignKeyName: 'stripe_subscriptions_discount_coupon_id_fkey'
+						columns: ['discount_coupon_id']
+						isOneToOne: false
+						referencedRelation: 'stripe_coupons'
+						referencedColumns: ['id']
+					},
 					{
 						foreignKeyName: 'stripe_subscriptions_entitlement_id_fkey'
 						columns: ['entitlement_id']
@@ -531,6 +604,7 @@ export type Database = {
 					latency_ms: number | null
 					project_id: string | null
 					recommendation: string
+					sdk_version: string | null
 					signals: string[]
 				}
 				Insert: {
@@ -546,6 +620,7 @@ export type Database = {
 					latency_ms?: number | null
 					project_id?: string | null
 					recommendation: string
+					sdk_version?: string | null
 					signals?: string[]
 				}
 				Update: {
@@ -561,6 +636,7 @@ export type Database = {
 					latency_ms?: number | null
 					project_id?: string | null
 					recommendation?: string
+					sdk_version?: string | null
 					signals?: string[]
 				}
 				Relationships: [

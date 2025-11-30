@@ -3,6 +3,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Stripe from 'npm:stripe@19.1.0'
 
+import { deleteCoupon, upsertCoupon } from './coupon.ts'
 import { deletePrice, upsertPrice } from './price.ts'
 import { deleteProduct, upsertProduct } from './product.ts'
 import { deleteSubscription, pauseSubscription, upsertSubscription } from './subscription.ts'
@@ -79,6 +80,14 @@ Deno.serve(async (request) => {
 				break
 			case 'customer.subscription.paused':
 				await pauseSubscription(supabaseAdmin, event.data.object)
+				break
+			// COUPON EVENTS
+			case 'coupon.created':
+			case 'coupon.updated':
+				await upsertCoupon(supabaseAdmin, event.data.object)
+				break
+			case 'coupon.deleted':
+				await deleteCoupon(supabaseAdmin, event.data.object)
 				break
 			// PRICE EVENTS
 			case 'price.created':
