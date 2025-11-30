@@ -243,6 +243,39 @@ export type Database = {
 				}
 				Relationships: []
 			}
+			stripe_coupon_products: {
+				Row: {
+					coupon_id: string
+					created_at: string
+					product_id: string
+				}
+				Insert: {
+					coupon_id: string
+					created_at?: string
+					product_id: string
+				}
+				Update: {
+					coupon_id?: string
+					created_at?: string
+					product_id?: string
+				}
+				Relationships: [
+					{
+						foreignKeyName: 'stripe_coupon_products_coupon_id_fkey'
+						columns: ['coupon_id']
+						isOneToOne: false
+						referencedRelation: 'stripe_coupons'
+						referencedColumns: ['id']
+					},
+					{
+						foreignKeyName: 'stripe_coupon_products_product_id_fkey'
+						columns: ['product_id']
+						isOneToOne: false
+						referencedRelation: 'stripe_products'
+						referencedColumns: ['id']
+					}
+				]
+			}
 			stripe_coupons: {
 				Row: {
 					amount_off: number | null
