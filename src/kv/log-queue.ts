@@ -1,10 +1,14 @@
 import { LOG_QUEUE_BATCH_SIZE, MAX_LOG_QUEUE_SIZE } from '../constants'
 import { createClient } from '../lib/supabase'
-import type { TablesInsert, ValidationLog } from '../types'
+import type { TablesInsert } from '../types'
 
 let isFlushing = false
 
-export async function enqueueLogs(projectId: string, logs: ValidationLog[], env: Env) {
+export async function enqueueLogs(
+	projectId: string,
+	logs: TablesInsert<'validation_logs'>[],
+	env: Env
+) {
 	let queue = await getQueueLogs(projectId, env)
 	queue.push(...logs)
 
@@ -49,7 +53,7 @@ export async function tryFlushLogs(projectId: string, env: Env) {
 		}
 
 		while (queue.length > 0) {
-			const batch = queue.slice(0, LOG_QUEUE_BATCH_SIZE) as TablesInsert<'validation_logs'>[]
+			const batch = queue.slice(0, LOG_QUEUE_BATCH_SIZE)
 
 			const { error } = await client.from('validation_logs').insert(batch)
 
@@ -71,5 +75,7 @@ export async function tryFlushLogs(projectId: string, env: Env) {
 }
 
 async function getQueueLogs(projectId: string, env: Env) {
-	return (await env.LOG_QUEUE.get<ValidationLog[]>(projectId, { type: 'json' })) ?? []
+	return (
+		(await env.LOG_QUEUE.get<TablesInsert<'validation_logs'>[]>(projectId, { type: 'json' })) ?? []
+	)
 }

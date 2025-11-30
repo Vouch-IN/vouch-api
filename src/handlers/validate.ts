@@ -184,6 +184,7 @@ export async function handleValidation(
 				ip,
 				country,
 				deviceType,
+				body.sdkVersion,
 				recommendation,
 				totalLatency,
 				env

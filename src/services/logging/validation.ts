@@ -1,5 +1,5 @@
 import { enqueueLogs } from '../../kv'
-import { type ValidationAction, type ValidationLog, type ValidationResults } from '../../types'
+import { type TablesInsert, type ValidationAction, type ValidationResults } from '../../types'
 import { encrypt, sha256Hex } from '../../utils'
 
 export async function recordValidationLog(
@@ -10,6 +10,7 @@ export async function recordValidationLog(
 	ip: null | string,
 	country: string | undefined,
 	deviceType: string | undefined,
+	sdkVersion: string | undefined,
 	recommendation: ValidationAction,
 	totalLatency: number,
 	env: Env
@@ -20,7 +21,7 @@ export async function recordValidationLog(
 	// Encrypt email for storage (using project-specific key)
 	const emailEncrypted = await encrypt(email, projectId, env)
 
-	const log: ValidationLog = {
+	const log: TablesInsert<'validation_logs'> = {
 		checks: validationResults.checks,
 		country,
 		created_at: new Date().toISOString(),
@@ -32,6 +33,7 @@ export async function recordValidationLog(
 		latency_ms: totalLatency,
 		project_id: projectId,
 		recommendation,
+		sdk_version: sdkVersion,
 		signals: validationResults.signals
 	}
 
